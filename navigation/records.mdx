@@ -1,0 +1,217 @@
+---
+title: Record Navigation
+description: Navigate to record pages, create new records, and edit existing records using NavigationMixin
+icon: file-lines
+---
+
+## Overview
+
+Record navigation enables you to navigate to view, edit, or create Salesforce records. This page covers the most common record navigation patterns found in the LWC Recipes repository.
+
+## Navigate to Record Page
+
+Navigate to a record's view or edit page using the `standard__recordPage` type.
+
+### View a Record
+
+<CodeGroup>
+```javascript navToRecord.js
+import { LightningElement, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import getSingleContact from '@salesforce/apex/ContactController.getSingleContact';
+
+export default class NavToRecord extends NavigationMixin(LightningElement) {
+    @wire(getSingleContact) contact;
+
+    navigateToContact() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.contact.data.Id,
+                objectApiName: 'Contact',
+                actionName: 'view'
+            }
+        });
+    }
+}
+```
+
+```html navToRecord.html
+<template>
+    <lightning-card title="NavToRecord">
+        <template lwc:if={contact.data}>
+            <div class="slds-var-m-around_medium">
+                <p>{contact.data.Name}</p>
+                <lightning-button
+                    label="Go to Contact Record"
+                    onclick={navigateToContact}
+                ></lightning-button>
+            </div>
+        </template>
+    </lightning-card>
+</template>
+```
+</CodeGroup>
+
+**Source:** [navToRecord.js:8](~/workspace/source/force-app/main/default/lwc/navToRecord/navToRecord.js)
+
+### Edit a Record
+
+```javascript
+navigateToEdit() {
+    this[NavigationMixin.Navigate]({
+        type: 'standard__recordPage',
+        attributes: {
+            recordId: this.contact.data.Id,
+            objectApiName: 'Contact',
+            actionName: 'edit'
+        }
+    });
+}
+```
+
+**Source:** [navToRecord.js:19](~/workspace/source/force-app/main/default/lwc/navToRecord/navToRecord.js)
+
+<Info>
+The `actionName` attribute supports three values:
+- `view` - View the record
+- `edit` - Edit the record
+- `clone` - Clone the record
+</Info>
+
+## Navigate to New Record Page
+
+Create new records using the `standard__objectPage` type with `actionName: 'new'`.
+
+### Basic New Record
+
+<CodeGroup>
+```javascript navToNewRecord.js
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToNewRecord extends NavigationMixin(LightningElement) {
+    navigateToNewContact() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'Contact',
+                actionName: 'new'
+            }
+        });
+    }
+}
+```
+
+```html navToNewRecord.html
+<template>
+    <lightning-card title="NavToNewRecord">
+        <lightning-button
+            label="Go to New Contact"
+            onclick={navigateToNewContact}
+        ></lightning-button>
+    </lightning-card>
+</template>
+```
+</CodeGroup>
+
+**Source:** [navToNewRecord.js:5](~/workspace/source/force-app/main/default/lwc/navToNewRecord/navToNewRecord.js)
+
+### New Record with Default Values
+
+Pre-populate fields on a new record form using `encodeDefaultFieldValues` from `lightning/pageReferenceUtils`.
+
+<CodeGroup>
+```javascript navToNewRecordWithDefaults.js
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import { encodeDefaultFieldValues } from 'lightning/pageReferenceUtils';
+
+export default class NavToNewRecordWithDefaults extends NavigationMixin(
+    LightningElement
+) {
+    navigateToNewContactWithDefaults() {
+        const defaultValues = encodeDefaultFieldValues({
+            FirstName: 'Morag',
+            LastName: 'de Fault',
+            LeadSource: 'Other'
+        });
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'Contact',
+                actionName: 'new'
+            },
+            state: {
+                defaultFieldValues: defaultValues
+            }
+        });
+    }
+}
+```
+
+```html navToNewRecordWithDefaults.html
+<template>
+    <lightning-card title="NavToNewRecordWithDefaults">
+        <lightning-button
+            label="Go to New Contact with Defaults"
+            onclick={navigateToNewContactWithDefaults}
+        ></lightning-button>
+    </lightning-card>
+</template>
+```
+</CodeGroup>
+
+**Source:** [navToNewRecordWithDefaults.js:8](~/workspace/source/force-app/main/default/lwc/navToNewRecordWithDefaults/navToNewRecordWithDefaults.js)
+
+<Tip>
+Use `encodeDefaultFieldValues()` to properly encode field values before passing them in the `state.defaultFieldValues` property.
+</Tip>
+
+## PageReference Attributes
+
+<ParamField path="type" type="string" required>
+  Use `standard__recordPage` for existing records or `standard__objectPage` for new records
+</ParamField>
+
+<ParamField path="attributes.recordId" type="string">
+  The 15 or 18 character record ID (required for `standard__recordPage`)
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the object (e.g., 'Contact', 'Account', 'CustomObject__c')
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  The action to perform: 'view', 'edit', 'clone', or 'new'
+</ParamField>
+
+<ParamField path="state.defaultFieldValues" type="string">
+  Encoded default field values for new records (use `encodeDefaultFieldValues()`)
+</ParamField>
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="View Record Details" icon="eye">
+    Navigate users from a list or search result to the full record page
+  </Card>
+  
+  <Card title="Quick Edit" icon="pen-to-square">
+    Open the edit page directly from a custom component
+  </Card>
+  
+  <Card title="Create Related Records" icon="plus">
+    Launch new record forms with pre-populated relationship fields
+  </Card>
+  
+  <Card title="Clone with Modifications" icon="copy">
+    Clone a record and pre-populate fields with new values
+  </Card>
+</CardGroup>
+
+## Related Examples
+
+- [Navigate to Related List](/navigation/utilities#navigate-to-related-list) - View related records
+- [Navigate to List View](/navigation/utilities#navigate-to-list-view) - Browse filtered record lists

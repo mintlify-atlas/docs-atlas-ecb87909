@@ -1,0 +1,118 @@
+---
+title: Toast Notifications
+description: Display toast notifications using ShowToastEvent
+---
+
+## Overview
+
+The `miscToastNotification` component demonstrates how to display toast notifications using the `ShowToastEvent` from the `lightning/platformShowToastEvent` module.
+
+## Source Component
+
+- **miscToastNotification** - Displays customizable toast notifications
+
+## Key Features
+
+- Four variant types: error, warning, success, info
+- Customizable title and message
+- Platform-standard notification styling
+- Event-based architecture
+
+## Implementation
+
+### Basic Toast
+
+Import and dispatch the `ShowToastEvent`:
+
+```javascript
+import { LightningElement } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+export default class MiscToastNotification extends LightningElement {
+    showNotification() {
+        const evt = new ShowToastEvent({
+            title: 'Sample Title',
+            message: 'Sample Message',
+            variant: 'success'
+        });
+        this.dispatchEvent(evt);
+    }
+}
+```
+
+## Toast Variants
+
+Four variants are available, each with different styling:
+
+- **error** - Red background, indicates errors
+- **warning** - Orange background, indicates warnings
+- **success** - Green background, indicates successful operations
+- **info** - Blue background, indicates informational messages
+
+```javascript
+variantOptions = [
+    { label: 'error', value: 'error' },
+    { label: 'warning', value: 'warning' },
+    { label: 'success', value: 'success' },
+    { label: 'info', value: 'info' }
+];
+```
+
+## Event Properties
+
+The `ShowToastEvent` accepts these properties:
+
+- **title** - Toast heading text
+- **message** - Toast body message
+- **variant** - Visual style (error, warning, success, info)
+- **mode** - Display mode: `dismissable` (default), `pester`, or `sticky`
+
+<Note>
+Toast notifications are automatically dismissed after a few seconds unless the mode is set to `sticky`. Users can also manually dismiss toasts by clicking the X button.
+</Note>
+
+## Advanced Usage
+
+### Sticky Toast
+
+Create a toast that persists until manually dismissed:
+
+```javascript
+const evt = new ShowToastEvent({
+    title: 'Important Message',
+    message: 'This will stay until dismissed',
+    variant: 'warning',
+    mode: 'sticky'
+});
+this.dispatchEvent(evt);
+```
+
+### Dynamic Messages
+
+Bind toast properties to component state:
+
+```javascript
+titleChange(event) {
+    this.titleText = event.target.value;
+}
+
+messageChange(event) {
+    this.messageText = event.target.value;
+}
+
+variantChange(event) {
+    this.variant = event.target.value;
+}
+```
+
+## Best Practices
+
+- Use `success` for confirmations of completed actions
+- Use `error` for failures that require user attention
+- Use `warning` for important information that isn't critical
+- Use `info` for general notifications
+- Keep messages concise and actionable
+
+## Source Files
+
+- `force-app/main/default/lwc/miscToastNotification/`

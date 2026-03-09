@@ -1,0 +1,137 @@
+---
+title: Composition Basics
+description: Learn how to compose Lightning Web Components by nesting a child component and passing data through @api properties.
+---
+
+## Overview
+
+The `compositionBasics` component demonstrates the fundamental pattern of component composition in Lightning Web Components. It shows how to:
+
+- Nest a child component within a parent component
+- Pass data to child components using public `@api` properties
+- Create reusable component hierarchies
+
+## Parent Component Structure
+
+The parent component (`compositionBasics`) defines contact data and passes it to the child component.
+
+### JavaScript (compositionBasics.js)
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class CompositionParent extends LightningElement {
+    contact = {
+        Name: 'Amy Taylor',
+        Title: 'VP of Engineering',
+        Phone: '6172559632',
+        Picture__c:
+            'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/amy_taylor.jpg'
+    };
+}
+```
+
+### Template (compositionBasics.html)
+
+```html
+<template>
+    <lightning-card title="CompositionBasics" icon-name="custom:custom57">
+        <div class="slds-var-m-around_medium">
+            <fieldset class="slds-var-p-horizontal_x-small">
+                <legend>c-contact-tile</legend>
+                <c-contact-tile
+                    class="slds-show slds-is-relative"
+                    contact={contact}
+                ></c-contact-tile>
+            </fieldset>
+        </div>
+    </lightning-card>
+</template>
+```
+
+## Child Component Structure
+
+The `contactTile` component receives data through its `@api` property and renders the contact information.
+
+### JavaScript (contactTile.js)
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class ContactTile extends LightningElement {
+    @api contact;
+}
+```
+
+### Template (contactTile.html)
+
+```html
+<template>
+    <template lwc:if={contact}>
+        <lightning-layout vertical-align="center">
+            <lightning-layout-item>
+                <img
+                    lwc:if={contact.Picture__c}
+                    src={contact.Picture__c}
+                    alt="Profile photo"
+                />
+                <lightning-icon
+                    lwc:else
+                    icon-name="standard:avatar"
+                    alternative-text="Missing profile photo"
+                    size="medium"
+                    title="Missing profile photo"
+                ></lightning-icon>
+            </lightning-layout-item>
+            <lightning-layout-item padding="around-small">
+                <p>{contact.Name}</p>
+                <p>{contact.Title}</p>
+                <p>
+                    <lightning-formatted-phone
+                        value={contact.Phone}
+                    ></lightning-formatted-phone>
+                </p>
+            </lightning-layout-item>
+        </lightning-layout>
+    </template>
+    <template lwc:else><p>No contact data available.</p></template>
+</template>
+```
+
+## Key Concepts
+
+### @api Decorator
+
+The `@api` decorator makes a property public, allowing parent components to set its value:
+
+```javascript
+@api contact;
+```
+
+### Data Binding
+
+In the parent template, use curly braces to bind data to the child component's property:
+
+```html
+<c-contact-tile contact={contact}></c-contact-tile>
+```
+
+### Component Naming
+
+Child components are referenced using kebab-case with the `c-` namespace:
+- Component name: `contactTile`
+- Template usage: `<c-contact-tile>`
+
+## Usage Pattern
+
+This pattern is ideal for:
+
+- Creating reusable UI components
+- Separating concerns between parent and child components
+- Building component libraries with consistent interfaces
+- Maintaining clean, modular code
+
+## Source Files
+
+- Parent: `force-app/main/default/lwc/compositionBasics/`
+- Child: `force-app/main/default/lwc/contactTile/`

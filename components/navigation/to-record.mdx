@@ -1,0 +1,104 @@
+---
+title: Navigate to Record
+description: Navigate to record view and edit pages using NavigationMixin
+---
+
+Navigate to standard record pages using the `lightning/navigation` service. This component demonstrates navigating to both view and edit modes.
+
+## Source
+
+`force-app/main/default/lwc/navToRecord/navToRecord.js`
+
+## Usage
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import getSingleContact from '@salesforce/apex/ContactController.getSingleContact';
+
+export default class NavToRecord extends NavigationMixin(LightningElement) {
+    @wire(getSingleContact) contact;
+
+    navigateToContact() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.contact.data.Id,
+                objectApiName: 'Contact',
+                actionName: 'view'
+            }
+        });
+    }
+
+    navigateToEdit() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.contact.data.Id,
+                objectApiName: 'Contact',
+                actionName: 'edit'
+            }
+        });
+    }
+}
+```
+
+## NavigationMixin
+
+Extend your component with `NavigationMixin` to access navigation capabilities:
+
+```javascript
+export default class NavToRecord extends NavigationMixin(LightningElement) {
+    // component code
+}
+```
+
+## PageReference
+
+### View Record
+
+<ParamField path="type" type="string" required>
+  Set to `standard__recordPage` for record pages
+</ParamField>
+
+<ParamField path="attributes.recordId" type="string" required>
+  The ID of the record to display
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the object (e.g., 'Contact', 'Account')
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  Set to `view` to display the record in view mode
+</ParamField>
+
+### Edit Record
+
+<ParamField path="type" type="string" required>
+  Set to `standard__recordPage` for record pages
+</ParamField>
+
+<ParamField path="attributes.recordId" type="string" required>
+  The ID of the record to edit
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the object (e.g., 'Contact', 'Account')
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  Set to `edit` to display the record in edit mode
+</ParamField>
+
+## Key Features
+
+- Navigate to record view pages
+- Navigate to record edit pages
+- Type-safe navigation with PageReference
+- Supports all standard and custom objects
+
+## Related
+
+- [Navigate to New Record](/components/navigation/to-new-record)
+- [Navigate to Related List](/components/navigation/to-related-list)

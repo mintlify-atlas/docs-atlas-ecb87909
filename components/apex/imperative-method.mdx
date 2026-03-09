@@ -1,0 +1,223 @@
+---
+title: Imperative Apex Method
+description: Call an Apex method imperatively using async/await
+---
+
+This component demonstrates how to call an Apex method imperatively using JavaScript's async/await pattern. Unlike `@wire`, imperative calls are triggered by user actions or component logic.
+
+## Implementation
+
+<CodeGroup>
+
+```javascript apexImperativeMethod.js
+import { LightningElement } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class ApexImperativeMethod extends LightningElement {
+    contacts;
+    error;
+
+    async handleLoad() {
+        try {
+            this.contacts = await getContactList();
+            this.error = undefined;
+        } catch (error) {
+            this.contacts = undefined;
+            this.error = error;
+        }
+    }
+}
+```
+
+```html apexImperativeMethod.html
+<template>
+    <lightning-card title="ApexImperativeMethod" icon-name="custom:custom63">
+        <div class="slds-var-m-around_medium">
+            <p class="slds-var-m-bottom_small">
+                <lightning-button
+                    label="Load Contacts"
+                    onclick={handleLoad}
+                ></lightning-button>
+            </p>
+            <template lwc:if={contacts}>
+                <template for:each={contacts} for:item="contact">
+                    <p key={contact.Id}>{contact.Name}</p>
+                </template>
+            </template>
+            <template lwc:elseif={error}>
+                <c-error-panel errors={error}></c-error-panel>
+            </template>
+        </div>
+
+        <c-view-source source="lwc/apexImperativeMethod" slot="footer">
+            Retrieve a list of records using an imperative Apex method call.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+```apex ContactController.cls
+public with sharing class ContactController {
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> getContactList() {
+        return [
+            SELECT
+                Id,
+                Name,
+                FirstName,
+                LastName,
+                Title,
+                Phone,
+                Email,
+                Picture__c
+            FROM Contact
+            WHERE Picture__c != NULL
+            WITH USER_MODE
+            LIMIT 10
+        ];
+    }
+}
+```
+
+</CodeGroup>
+
+## Key Features
+
+### Imperative Call
+
+Import and call the Apex method as a JavaScript function:
+
+```javascript
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+// Call it imperatively
+this.contacts = await getContactList();
+```
+
+### Async/Await Pattern
+
+Use async/await for cleaner asynchronous code:
+
+```javascript
+async handleLoad() {
+    try {
+        this.contacts = await getContactList();
+        this.error = undefined;
+    } catch (error) {
+        this.contacts = undefined;
+        this.error = error;
+    }
+}
+```
+
+### Error Handling
+
+Use try/catch to handle errors:
+
+```javascript
+try {
+    this.contacts = await getContactList();
+    this.error = undefined; // Clear previous errors
+} catch (error) {
+    this.contacts = undefined; // Clear previous data
+    this.error = error;
+}
+```
+
+### User-Triggered Execution
+
+The method is called when the user clicks the button:
+
+```html
+<lightning-button
+    label="Load Contacts"
+    onclick={handleLoad}
+></lightning-button>
+```
+
+## Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `contacts` | Array | List of contacts returned from Apex |
+| `error` | Object | Error object if the call fails |
+
+## Apex Method Requirements
+
+For cacheable methods (read-only operations):
+
+```apex
+@AuraEnabled(cacheable=true)
+public static List<Contact> getContactList() {
+    // Method implementation
+}
+```
+
+For non-cacheable methods (DML operations):
+
+```apex
+@AuraEnabled
+public static void updateContact(Contact contact) {
+    // Method implementation
+}
+```
+
+## Error Types
+
+Common error scenarios:
+
+1. **No access**: User lacks permission to access records
+2. **SOQL errors**: Invalid query or limits exceeded
+3. **DML errors**: Failed insert/update/delete operations
+4. **Custom errors**: Thrown by your Apex code
+
+## When to Use Imperative vs Wire
+
+### Use Imperative When:
+- You need to call the method in response to user actions
+- You want control over when the method executes
+- You need to perform DML operations
+- You want to chain multiple operations
+- You need to pass dynamic parameters
+
+### Use Wire When:
+- Data should load automatically
+- You want reactive updates
+- You're doing read-only operations
+- Parameters are reactive properties
+
+## Best Practices
+
+1. **Always use try/catch**: Handle errors gracefully
+2. **Clear previous state**: Reset data or error on each call
+3. **Use async/await**: Cleaner than promise chains
+4. **Show loading state**: Indicate when operation is in progress
+5. **Handle all error cases**: Provide meaningful error messages
+
+## Advanced Example with Loading State
+
+```javascript
+async handleLoad() {
+    this.isLoading = true;
+    try {
+        this.contacts = await getContactList();
+        this.error = undefined;
+    } catch (error) {
+        this.contacts = undefined;
+        this.error = error;
+    } finally {
+        this.isLoading = false;
+    }
+}
+```
+
+## Comparison with Wire
+
+| Feature | Imperative | Wire |
+|---------|-----------|------|
+| Execution | On-demand | Automatic |
+| Control | Manual | Automatic |
+| Caching | Optional | Required for cacheable |
+| DML operations | Supported | Not supported |
+| User action | Required | Not required |
+| Reactivity | Manual | Automatic |

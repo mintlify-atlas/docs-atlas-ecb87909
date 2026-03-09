@@ -1,0 +1,93 @@
+---
+title: lightning-record-form
+description: Display, create, or edit a record with automatic layout generation using Lightning Data Service
+---
+
+`lightning-record-form` is the simplest way to create, edit, or view a record using Lightning Data Service. It automatically generates the form layout based on the object's metadata and handles data loading, saving, and validation.
+
+## Usage
+
+### Static Field Definition
+
+Import field schema references for type safety and IDE support:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+import ACCOUNT_FIELD from '@salesforce/schema/Contact.AccountId';
+import NAME_FIELD from '@salesforce/schema/Contact.Name';
+import TITLE_FIELD from '@salesforce/schema/Contact.Title';
+import PHONE_FIELD from '@salesforce/schema/Contact.Phone';
+import EMAIL_FIELD from '@salesforce/schema/Contact.Email';
+
+export default class RecordFormStaticContact extends LightningElement {
+    @api recordId;
+    @api objectApiName;
+
+    fields = [ACCOUNT_FIELD, NAME_FIELD, TITLE_FIELD, PHONE_FIELD, EMAIL_FIELD];
+}
+```
+
+```html
+<template>
+    <lightning-record-form
+        object-api-name={objectApiName}
+        record-id={recordId}
+        fields={fields}
+    ></lightning-record-form>
+</template>
+```
+
+### Dynamic Field Definition
+
+Specify fields as strings for more flexible runtime configuration:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class RecordFormDynamicContact extends LightningElement {
+    @api recordId;
+    @api objectApiName;
+    fields = ['AccountId', 'Name', 'Title', 'Phone', 'Email'];
+}
+```
+
+```html
+<template>
+    <lightning-record-form
+        object-api-name={objectApiName}
+        record-id={recordId}
+        fields={fields}
+    ></lightning-record-form>
+</template>
+```
+
+## Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `object-api-name` | String | Yes | API name of the object (e.g., 'Contact', 'Account') |
+| `record-id` | String | No | ID of the record to load. Omit to create a new record |
+| `fields` | String[] or FieldId[] | No | Array of field API names or field schema references |
+| `layout-type` | String | No | Layout to use: 'Full' (default) or 'Compact' |
+| `mode` | String | No | Form mode: 'view', 'edit', or 'readonly' |
+| `columns` | Number | No | Number of columns (1 or 2, default is 2) |
+| `record-type-id` | String | No | Record type ID for record creation |
+
+## Features
+
+- **Automatic Layout**: Generates form layout based on object metadata
+- **Built-in Validation**: Handles field-level and record-level validation
+- **Save/Cancel**: Includes save and cancel buttons automatically
+- **Lightning Data Service**: Uses LDS for caching and offline support
+- **Responsive**: Adapts to different screen sizes
+
+<Warning>
+  When using `lightning-record-form`, you cannot customize the layout or add custom buttons. For more control over layout and behavior, use `lightning-record-edit-form` or `lightning-record-view-form`.
+</Warning>
+
+## Related Components
+
+- [lightning-record-edit-form](/components/lds/record-edit-form) - For custom edit layouts
+- [lightning-record-view-form](/components/lds/record-view-form) - For custom view layouts
+- [createRecord](/components/lds/create-record) - For programmatic record creation

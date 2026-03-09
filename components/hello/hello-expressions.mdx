@@ -1,0 +1,106 @@
+---
+title: 'Hello Expressions'
+description: 'Using JavaScript expressions and getters in Lightning Web Components'
+---
+
+## Overview
+
+The `helloExpressions` component demonstrates how to use JavaScript expressions in Lightning Web Components templates. It shows how getters can compute derived values from component properties, enabling dynamic data transformation and formatting.
+
+## What It Does
+
+This component accepts first and last name inputs from the user and displays the full name in uppercase. It uses a getter method (`uppercasedFullName`) to compute the uppercased full name from the `firstName` and `lastName` properties, demonstrating how to use JavaScript expressions in templates.
+
+## Component Code
+
+<CodeGroup>
+
+```javascript helloExpressions.js
+import { LightningElement } from 'lwc';
+
+export default class HelloExpressions extends LightningElement {
+    firstName = '';
+    lastName = '';
+
+    handleChange(event) {
+        const field = event.target.name;
+        if (field === 'firstName') {
+            this.firstName = event.target.value;
+        } else if (field === 'lastName') {
+            this.lastName = event.target.value;
+        }
+    }
+
+    get uppercasedFullName() {
+        return `${this.firstName} ${this.lastName}`.trim().toUpperCase();
+    }
+}
+```
+
+```html helloExpressions.html
+<template>
+    <lightning-card title="HelloExpressions" icon-name="custom:custom14">
+        <div class="slds-var-m-around_medium">
+            <lightning-input
+                name="firstName"
+                label="First Name"
+                onchange={handleChange}
+            ></lightning-input>
+            <lightning-input
+                name="lastName"
+                label="Last Name"
+                onchange={handleChange}
+            ></lightning-input>
+            <p class="slds-var-m-top_medium">
+                Uppercased Full Name: {uppercasedFullName}
+            </p>
+        </div>
+
+        <c-view-source source="lwc/helloExpressions" slot="footer">
+            Use JavaScript expressions in a template. Type something in the
+            input fields to see the recipe in action.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+- **Getters**: The `get uppercasedFullName()` method computes a derived value from properties
+- **Template Expressions**: Getters can be used in templates like regular properties
+- **Field Identification**: The `event.target.name` attribute identifies which field triggered the event
+- **String Manipulation**: JavaScript string methods (template literals, trim, toUpperCase) transform the data
+- **Reactive Updates**: When `firstName` or `lastName` changes, the getter automatically re-evaluates
+
+## How It Works
+
+1. User types in the "First Name" or "Last Name" input field
+2. The `handleChange` method identifies which field changed using `event.target.name`
+3. The corresponding property (`firstName` or `lastName`) is updated
+4. The `uppercasedFullName` getter combines and transforms the values
+5. The template displays the computed uppercase full name
+
+## Usage Example
+
+To use this component in your Salesforce org:
+
+```html
+<c-hello-expressions></c-hello-expressions>
+```
+
+If you enter:
+- First Name: "John"
+- Last Name: "Doe"
+
+The output will be:
+```
+Uppercased Full Name: JOHN DOE
+```
+
+## Source Code
+
+View the complete source code on GitHub:
+- [helloExpressions.js](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloExpressions/helloExpressions.js)
+- [helloExpressions.html](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloExpressions/helloExpressions.html)

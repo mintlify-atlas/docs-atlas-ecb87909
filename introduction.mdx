@@ -1,0 +1,139 @@
+---
+title: Introduction
+description: A collection of easy-to-digest code examples for Lightning Web Components on Salesforce Platform
+---
+
+<img
+  className="block dark:hidden"
+  src="https://res.cloudinary.com/hy4kyit2a/f_auto,fl_lossy,q_70/learn/projects/quick-start-lwc-recipes-app/bb501c3216ac163958f036fb90357955_badge.png"
+  alt="LWC Recipes Hero"
+/>
+<img
+  className="hidden dark:block"
+  src="https://res.cloudinary.com/hy4kyit2a/f_auto,fl_lossy,q_70/learn/projects/quick-start-lwc-recipes-app/bb501c3216ac163958f036fb90357955_badge.png"
+  alt="LWC Recipes Hero"
+/>
+
+## Welcome to Lightning Web Components Recipes
+
+Lightning Web Components Recipes is a collection of **123+ easy-to-digest code examples** that demonstrate how to build Lightning Web Components on Salesforce Platform. Each recipe shows you how to code a specific task in the fewest lines of code possible while following best practices.
+
+<Note>
+  This sample application is designed to run on **Salesforce Platform**. If you want to experience Lightning Web Components on any platform, visit [lwc.dev](https://lwc.dev) and try out [LWC Recipes OSS](https://github.com/trailheadapps/lwc-recipes-oss).
+</Note>
+
+## What You'll Learn
+
+This repository provides practical examples across all key Lightning Web Components concepts:
+
+<CardGroup cols={2}>
+  <Card title="Hello World Basics" icon="hand-wave">
+    Start with simple property binding and basic component structure
+  </Card>
+  <Card title="Data Access" icon="database">
+    Learn to work with Salesforce data using wire adapters and imperative methods
+  </Card>
+  <Card title="Component Communication" icon="comments">
+    Master events, properties, and the pubsub pattern for component interaction
+  </Card>
+  <Card title="Third-Party Libraries" icon="book-open">
+    Integrate external JavaScript libraries like Chart.js into your components
+  </Card>
+</CardGroup>
+
+## Component Categories
+
+The recipes are organized into practical categories:
+
+### Data Binding & Rendering
+- **hello** - Simple property binding
+- **clock** - Displaying dynamic time values
+- **compositionIteration** - Rendering lists with `template for:each`
+
+### Apex Integration
+- **apexImperativeMethod** - Calling Apex methods imperatively
+- **apexWireMethodToProperty** - Wire Apex methods to properties
+- **apexWireMethodToFunction** - Wire Apex methods to functions
+- **apexWireMethodWithComplexParams** - Pass complex parameters to Apex
+
+### Lightning Data Service
+- **wireGetRecord** - Fetch record data with the UI API
+- **ldsCreateRecord** - Create records using `createRecord`
+- **ldsDeleteRecord** - Delete records with Lightning Data Service
+- **wireGetPicklistValues** - Retrieve picklist field values
+
+### GraphQL API
+- **graphqlContacts** - Query Salesforce data with GraphQL
+- **graphqlPagination** - Implement pagination with GraphQL
+- **graphqlMultipleObjects** - Query multiple object types
+
+### Navigation
+- **navToRecord** - Navigate to record pages
+- **navToRelatedList** - Navigate to related lists
+- **navToNewRecord** - Navigate to create new records
+
+### Component Events
+- **eventSimple** - Handle simple button click events
+- **eventWithData** - Pass data with custom events
+- **eventBubbling** - Understand event bubbling and propagation
+
+### Third-Party Libraries
+- **libsChartjs** - Integrate Chart.js for data visualization
+- **libsD3** - Use D3.js for advanced visualizations
+
+### Workspace API
+- **workspaceAPIOpenTab** - Open workspace tabs programmatically
+- **workspaceAPICloseTab** - Close workspace tabs
+- **workspaceAPISetTabLabel** - Update tab labels dynamically
+
+## Key Features
+
+<Steps>
+  <Step title="Real Working Code">
+    Every example is fully functional code extracted from the actual LWC Recipes app running on Salesforce Platform.
+  </Step>
+  
+  <Step title="View Source Links">
+    Each recipe includes a direct link to the source code on GitHub for easy reference.
+  </Step>
+  
+  <Step title="Best Practices">
+    All recipes follow Salesforce Lightning Web Components best practices and conventions.
+  </Step>
+  
+  <Step title="Sample Data">
+    Includes sample Account and Contact data to demonstrate data-driven components.
+  </Step>
+</Steps>
+
+## Learning Resources
+
+<CardGroup cols={2}>
+  <Card title="Trailhead Project" icon="trailhead" href="https://trailhead.salesforce.com/content/learn/projects/quick-start-lwc-recipes-app">
+    Complete the **Quick Start: Explore the LWC Recipes Sample App** guided project
+  </Card>
+  <Card title="Video Tutorial" icon="youtube" href="https://www.youtube.com/watch?v=lK3NOZGc5fg&list=PLgIMQe2PKPSJcuCwM61dEc4jFG_jHqV2t&index=3">
+    Watch the presentation video for a walkthrough of the app
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/trailheadapps/lwc-recipes">
+    Explore the complete source code and contribute to the project
+  </Card>
+  <Card title="Code Tours" icon="route">
+    Install the CodeTour VSCode extension for guided walkthroughs through the code
+  </Card>
+</CardGroup>
+
+## What's Next?
+
+<CardGroup cols={2}>
+  <Card title="Install the App" icon="download" href="/installation">
+    Get LWC Recipes running in your Salesforce org
+  </Card>
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Start exploring components and building your first LWC
+  </Card>
+</CardGroup>
+
+<Warning>
+  **CI/CD Ready**: This repository includes configuration for Prettier code formatting, ESLint linting, and pre-commit hooks. Perfect for learning modern Salesforce development workflows.
+</Warning>

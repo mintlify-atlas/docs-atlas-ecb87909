@@ -1,0 +1,339 @@
+---
+title: Nesting and Iteration
+description: Create dynamic UIs by nesting components and iterating over data collections
+---
+
+Nesting components and iterating over data are essential patterns for building dynamic, data-driven user interfaces in Lightning Web Components. This guide covers advanced composition techniques including iteration, conditional rendering, and building complete experiences.
+
+## Component Iteration
+
+When you need to display multiple instances of a child component based on an array of data, use the `for:each` directive.
+
+### Using for:each
+
+The `for:each` directive iterates over an array and creates a component instance for each item.
+
+**compositionIteration.js**
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class CompositionIteration extends LightningElement {
+    contacts = [
+        {
+            Id: '003171931112854375',
+            Name: 'Amy Taylor',
+            Title: 'VP of Engineering',
+            Phone: '6172559632',
+            Picture__c:
+                'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/amy_taylor.jpg'
+        },
+        {
+            Id: '003192301009134555',
+            Name: 'Michael Jones',
+            Title: 'VP of Sales',
+            Phone: '6172551122',
+            Picture__c:
+                'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/michael_jones.jpg'
+        },
+        {
+            Id: '003848991274589432',
+            Name: 'Jennifer Wu',
+            Title: 'CEO',
+            Phone: '6172558877',
+            Picture__c:
+                'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/jennifer_wu.jpg'
+        }
+    ];
+}
+```
+
+**compositionIteration.html**
+```html
+<template>
+    <lightning-card title="CompositionIteration" icon-name="custom:custom57">
+        <div class="slds-var-m-around_medium">
+            <template for:each={contacts} for:item="contact">
+                <fieldset
+                    key={contact.Id}
+                    class="slds-var-p-horizontal_x-small"
+                >
+                    <legend>c-contact-tile</legend>
+                    <c-contact-tile contact={contact}></c-contact-tile>
+                </fieldset>
+            </template>
+        </div>
+    </lightning-card>
+</template>
+```
+
+### Key Requirements
+
+<Warning>
+  **Always include a `key` directive** when using `for:each`. The key must be unique for each item and helps the framework efficiently update the DOM when the list changes.
+</Warning>
+
+```html
+<template for:each={items} for:item="item">
+    <div key={item.Id}>
+        <!-- Content -->
+    </div>
+</template>
+```
+
+### for:each Directives
+
+| Directive | Description | Required |
+|-----------|-------------|----------|
+| `for:each` | The array to iterate over | Yes |
+| `for:item` | Variable name for the current item | Yes |
+| `for:index` | Variable name for the current index (0-based) | No |
+| `key` | Unique identifier for each item | Yes |
+
+### Example with Index
+
+```html
+<template for:each={contacts} for:item="contact" for:index="index">
+    <div key={contact.Id}>
+        <p>{index}. {contact.Name}</p>
+    </div>
+</template>
+```
+
+## Building Complete Experiences
+
+You can compose multiple child components together to create rich, interactive experiences.
+
+### Contact Search Example
+
+This example combines input handling, data fetching, iteration, and error handling:
+
+**compositionContactSearch.js**
+```javascript
+import { LightningElement } from 'lwc';
+import findContacts from '@salesforce/apex/ContactController.findContacts';
+
+const DELAY = 350;
+
+export default class CompositionContactSearch extends LightningElement {
+    contacts;
+    error;
+
+    handleKeyChange(event) {
+        // Debounce to avoid too many Apex calls
+        window.clearTimeout(this.delayTimeout);
+        const searchKey = event.target.value;
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.delayTimeout = setTimeout(async () => {
+            try {
+                this.contacts = await findContacts({ searchKey });
+                this.error = undefined;
+            } catch (error) {
+                this.error = error;
+                this.contacts = undefined;
+            }
+        }, DELAY);
+    }
+}
+```
+
+**compositionContactSearch.html**
+```html
+<template>
+    <lightning-card
+        title="CompositionContactSearch"
+        icon-name="custom:custom57"
+    >
+        <div class="slds-var-m-around_medium">
+            <!-- Search input -->
+            <lightning-input
+                type="search"
+                onchange={handleKeyChange}
+                label="Search"
+            ></lightning-input>
+            
+            <!-- Results: Contact tiles -->
+            <template lwc:if={contacts}>
+                <template for:each={contacts} for:item="contact">
+                    <c-contact-tile
+                        key={contact.Id}
+                        contact={contact}
+                    ></c-contact-tile>
+                </template>
+            </template>
+            
+            <!-- Error handling -->
+            <template lwc:elseif={error}>
+                <c-error-panel errors={error}></c-error-panel>
+            </template>
+        </div>
+    </lightning-card>
+</template>
+```
+
+This example demonstrates:
+
+<Steps>
+  <Step title="User input handling">
+    The `lightning-input` component captures search text
+  </Step>
+  
+  <Step title="Debouncing">
+    Delays the Apex call to reduce server load while typing
+  </Step>
+  
+  <Step title="Data fetching">
+    Calls an Apex method to retrieve matching contacts
+  </Step>
+  
+  <Step title="Dynamic rendering">
+    Uses `for:each` to render a contact tile for each result
+  </Step>
+  
+  <Step title="Error handling">
+    Displays an error panel if the Apex call fails
+  </Step>
+</Steps>
+
+## Conditional Rendering
+
+Combine iteration with conditional rendering to handle different states.
+
+### Using lwc:if and lwc:elseif
+
+```html
+<template lwc:if={contacts}>
+    <template for:each={contacts} for:item="contact">
+        <c-contact-tile key={contact.Id} contact={contact}></c-contact-tile>
+    </template>
+</template>
+<template lwc:elseif={error}>
+    <c-error-panel errors={error}></c-error-panel>
+</template>
+<template lwc:else>
+    <p>No data available.</p>
+</template>
+```
+
+## Nesting Depth
+
+Components can be nested multiple levels deep. Each level can have its own logic and state.
+
+```html
+<!-- Level 1: Page -->
+<template>
+    <!-- Level 2: Search component -->
+    <c-contact-search>
+        <!-- Level 3: Contact tiles (iterated) -->
+        <c-contact-tile>
+            <!-- Level 4: Lightning base components -->
+            <lightning-icon></lightning-icon>
+        </c-contact-tile>
+    </c-contact-search>
+</template>
+```
+
+<Note>
+  While there's no hard limit on nesting depth, deeply nested components can be harder to maintain. Consider your component hierarchy carefully.
+</Note>
+
+## Performance Considerations
+
+### Efficient Iteration
+
+<Steps>
+  <Step title="Use unique keys">
+    Always provide stable, unique keys for iterated items
+    
+    ```html
+    <!-- Good: Stable ID -->
+    <div key={contact.Id}></div>
+    
+    <!-- Bad: Index can change when items are reordered -->
+    <div key={index}></div>
+    ```
+  </Step>
+  
+  <Step title="Avoid unnecessary re-renders">
+    Only update the data when it actually changes
+  </Step>
+  
+  <Step title="Limit iteration size">
+    For large datasets, consider pagination or virtual scrolling
+  </Step>
+  
+  <Step title="Use conditional rendering">
+    Don't render components that aren't needed
+  </Step>
+</Steps>
+
+### Debouncing Example
+
+The contact search example demonstrates debouncing to reduce unnecessary server calls:
+
+```javascript
+const DELAY = 350; // milliseconds
+
+handleKeyChange(event) {
+    window.clearTimeout(this.delayTimeout);
+    const searchKey = event.target.value;
+    this.delayTimeout = setTimeout(async () => {
+        // Make the server call after DELAY milliseconds
+        this.contacts = await findContacts({ searchKey });
+    }, DELAY);
+}
+```
+
+## Common Patterns
+
+### Empty State Handling
+
+```html
+<template lwc:if={contacts.length}>
+    <template for:each={contacts} for:item="contact">
+        <c-contact-tile key={contact.Id} contact={contact}></c-contact-tile>
+    </template>
+</template>
+<template lwc:else>
+    <p>No contacts found.</p>
+</template>
+```
+
+### Loading State
+
+```javascript
+export default class Example extends LightningElement {
+    contacts;
+    isLoading = false;
+    
+    async loadData() {
+        this.isLoading = true;
+        try {
+            this.contacts = await fetchData();
+        } finally {
+            this.isLoading = false;
+        }
+    }
+}
+```
+
+```html
+<template lwc:if={isLoading}>
+    <lightning-spinner alternative-text="Loading"></lightning-spinner>
+</template>
+<template lwc:elseif={contacts}>
+    <template for:each={contacts} for:item="contact">
+        <c-contact-tile key={contact.Id} contact={contact}></c-contact-tile>
+    </template>
+</template>
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Events" icon="bolt" href="/events/overview">
+    Learn how child components communicate with parents
+  </Card>
+  <Card title="App Builder Integration" icon="wrench" href="./app-builder">
+    Expose your components in Lightning App Builder
+  </Card>
+</CardGroup>

@@ -1,0 +1,241 @@
+---
+title: Contact Search Component
+description: Build a complete search experience by composing multiple child components with data from Apex, featuring debouncing, error handling, and conditional rendering.
+---
+
+## Overview
+
+The `compositionContactSearch` component demonstrates how to create a complete user experience by assembling multiple child components. This advanced composition example includes:
+
+- Integration with Salesforce Apex methods
+- Debounced search input handling
+- Conditional rendering based on data state
+- Error handling and display
+- Dynamic iteration over search results
+
+## Parent Component Structure
+
+### JavaScript (compositionContactSearch.js)
+
+```javascript
+import { LightningElement } from 'lwc';
+import findContacts from '@salesforce/apex/ContactController.findContacts';
+
+/** The delay used when debouncing event handlers before invoking Apex. */
+const DELAY = 350;
+
+export default class CompositionContactSearch extends LightningElement {
+    contacts;
+    error;
+
+    handleKeyChange(event) {
+        // Debouncing this method: Do not actually invoke the Apex call as long as this function is
+        // being called within a delay of DELAY. This is to avoid a very large number of Apex method calls.
+        window.clearTimeout(this.delayTimeout);
+        const searchKey = event.target.value;
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.delayTimeout = setTimeout(async () => {
+            try {
+                this.contacts = await findContacts({ searchKey });
+                this.error = undefined;
+            } catch (error) {
+                this.error = error;
+                this.contacts = undefined;
+            }
+        }, DELAY);
+    }
+}
+```
+
+### Template (compositionContactSearch.html)
+
+```html
+<template>
+    <lightning-card
+        title="CompositionContactSearch"
+        icon-name="custom:custom57"
+    >
+        <div class="slds-var-m-around_medium">
+            <fieldset class="slds-var-p-around_x-small">
+                <legend>lightning-input</legend>
+                <lightning-input
+                    type="search"
+                    onchange={handleKeyChange}
+                    class="slds-show slds-is-relative"
+                    label="Search"
+                ></lightning-input>
+            </fieldset>
+            <template lwc:if={contacts}>
+                <template for:each={contacts} for:item="contact">
+                    <fieldset
+                        key={contact.Id}
+                        class="slds-var-p-horizontal_x-small"
+                    >
+                        <legend>c-contact-tile</legend>
+                        <c-contact-tile contact={contact}></c-contact-tile>
+                    </fieldset>
+                </template>
+            </template>
+            <template lwc:elseif={error}>
+                <c-error-panel errors={error}></c-error-panel>
+            </template>
+        </div>
+    </lightning-card>
+</template>
+```
+
+## Child Components Used
+
+### contactTile Component
+
+Displays individual contact information:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class ContactTile extends LightningElement {
+    @api contact;
+}
+```
+
+### errorPanel Component
+
+Handles error display (referenced as `c-error-panel`):
+
+```html
+<c-error-panel errors={error}></c-error-panel>
+```
+
+## Key Concepts
+
+### Apex Integration
+
+Import and call Apex methods using `@salesforce/apex`:
+
+```javascript
+import findContacts from '@salesforce/apex/ContactController.findContacts';
+
+// Call the Apex method
+this.contacts = await findContacts({ searchKey });
+```
+
+### Debouncing
+
+Debouncing prevents excessive server calls by delaying execution until user stops typing:
+
+```javascript
+handleKeyChange(event) {
+    window.clearTimeout(this.delayTimeout);
+    const searchKey = event.target.value;
+    this.delayTimeout = setTimeout(async () => {
+        // Apex call happens here after 350ms of no typing
+        this.contacts = await findContacts({ searchKey });
+    }, DELAY);
+}
+```
+
+**Benefits:**
+- Reduces server load
+- Improves user experience
+- Prevents race conditions
+- Standard delay: 300-500ms
+
+### Conditional Rendering
+
+Use `lwc:if` and `lwc:elseif` to show different content based on state:
+
+```html
+<template lwc:if={contacts}>
+    <!-- Show results when contacts exist -->
+    <template for:each={contacts} for:item="contact">
+        <c-contact-tile contact={contact}></c-contact-tile>
+    </template>
+</template>
+<template lwc:elseif={error}>
+    <!-- Show errors if something went wrong -->
+    <c-error-panel errors={error}></c-error-panel>
+</template>
+```
+
+### Error Handling
+
+Implement try-catch blocks for async operations:
+
+```javascript
+try {
+    this.contacts = await findContacts({ searchKey });
+    this.error = undefined;
+} catch (error) {
+    this.error = error;
+    this.contacts = undefined;
+}
+```
+
+## Component Composition Benefits
+
+This example demonstrates several composition advantages:
+
+1. **Reusability**: `contactTile` and `errorPanel` can be used in other components
+2. **Separation of Concerns**: Each component has a single responsibility
+3. **Maintainability**: Changes to child components don't affect parent logic
+4. **Testability**: Components can be tested independently
+5. **Scalability**: Easy to add more child components or features
+
+## Data Flow
+
+1. User types in search input
+2. `handleKeyChange` event handler is triggered
+3. Debounce timer clears previous timeout and sets new one
+4. After 350ms delay, Apex method is called
+5. Results are stored in `contacts` property or `error` property
+6. Template conditionally renders:
+   - Contact tiles if data exists
+   - Error panel if error occurred
+   - Nothing if neither exists (initial state)
+
+## Usage Patterns
+
+This pattern is ideal for:
+
+- Search interfaces with live results
+- Filtered lists with user input
+- Dynamic content based on API responses
+- Complex UIs requiring multiple component types
+- Applications with error handling requirements
+
+## Complete Working Example
+
+To implement this pattern:
+
+1. **Create Apex Controller**:
+```apex
+public with sharing class ContactController {
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> findContacts(String searchKey) {
+        String key = '%' + searchKey + '%';
+        return [SELECT Id, Name, Title, Phone, Picture__c 
+                FROM Contact 
+                WHERE Name LIKE :key 
+                LIMIT 10];
+    }
+}
+```
+
+2. **Create Child Components**: Implement `contactTile` and `errorPanel`
+
+3. **Use Parent Component**: Deploy and add to a Lightning page
+
+## Best Practices
+
+- Always debounce user input that triggers server calls
+- Clear error state when new successful data arrives
+- Use conditional rendering to handle different states
+- Implement proper error handling for all async operations
+- Keep child components focused on single responsibilities
+- Use `@api` properties for all data passed to children
+
+## Source Files
+
+- Parent: `force-app/main/default/lwc/compositionContactSearch/`
+- Child: `force-app/main/default/lwc/contactTile/`
+- Apex: `force-app/main/default/classes/ContactController.cls`

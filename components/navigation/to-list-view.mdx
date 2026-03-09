@@ -1,0 +1,83 @@
+---
+title: Navigate to List View
+description: Navigate to object list views with optional filter selection
+---
+
+Navigate to list views for any object. Optionally specify a filter name to display a specific list view.
+
+## Source
+
+`force-app/main/default/lwc/navToListView/navToListView.js`
+
+## Usage
+
+```javascript
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToListView extends NavigationMixin(LightningElement) {
+    navigateToList() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'Contact',
+                actionName: 'list'
+            },
+            state: {
+                filterName: 'Recent'
+            }
+        });
+    }
+}
+```
+
+## NavigationMixin
+
+Extend your component with `NavigationMixin` to access navigation capabilities:
+
+```javascript
+export default class NavToListView extends NavigationMixin(LightningElement) {
+    // component code
+}
+```
+
+## PageReference
+
+<ParamField path="type" type="string" required>
+  Set to `standard__objectPage` for object pages
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the object (e.g., 'Contact', 'Account', 'Opportunity')
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  Set to `list` to display the object's list view
+</ParamField>
+
+<ParamField path="state.filterName" type="string">
+  The API name of the list view to display (e.g., 'Recent', 'AllContacts', 'MyContacts'). If omitted, displays the default list view for the object
+</ParamField>
+
+## List View Filters
+
+Common filter names include:
+
+- `Recent` - Recently viewed records
+- `AllContacts` - All contacts (object-specific)
+- `MyContacts` - My contacts (object-specific)
+- Custom list view API names
+
+You can find the API name of a list view in Setup or by querying the ListView object.
+
+## Key Features
+
+- Navigate to object list views
+- Specify custom list view filters
+- Supports all standard and custom objects
+- Type-safe navigation with PageReference
+
+## Related
+
+- [Navigate to Record](/components/navigation/to-record)
+- [Navigate to New Record](/components/navigation/to-new-record)

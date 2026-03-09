@@ -1,0 +1,174 @@
+---
+title: Events with Data
+description: Learn how to pass data from child to parent components using CustomEvent detail payload
+---
+
+## Overview
+
+Custom events can carry data from child to parent using the `detail` property of `CustomEvent`. This enables rich communication patterns where child components share complex information upward.
+
+## Passing Data with Events
+
+Use the `detail` property in the `CustomEvent` constructor to pass data to the parent component.
+
+### Child Component (c-contact-list-item)
+
+**contactListItem.js**
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class ContactListItem extends LightningElement {
+    @api contact;
+
+    handleClick(event) {
+        // 1. Prevent default behavior of anchor tag click
+        event.preventDefault();
+        
+        // 2. Create a custom event with data in the detail property
+        const selectEvent = new CustomEvent('select', {
+            detail: this.contact.Id
+        });
+        
+        // 3. Fire the custom event
+        this.dispatchEvent(selectEvent);
+    }
+}
+```
+
+**contactListItem.html**
+```html
+<template>
+    <a href="#" onclick={handleClick}>
+        <lightning-layout vertical-align="center">
+            <lightning-layout-item>
+                <img src={contact.Picture__c} alt="Profile photo" />
+            </lightning-layout-item>
+            <lightning-layout-item padding="around-small">
+                <p>{contact.Name}</p>
+            </lightning-layout-item>
+        </lightning-layout>
+    </a>
+</template>
+```
+
+## Accessing Event Data
+
+In the parent component, access the data through `event.detail`.
+
+### Parent Component (c-event-with-data)
+
+**eventWithData.js**
+```javascript
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class EventWithData extends LightningElement {
+    selectedContact;
+
+    @wire(getContactList) contacts;
+
+    handleSelect(event) {
+        // Access the data passed from the child via event.detail
+        const contactId = event.detail;
+        this.selectedContact = this.contacts.data.find(
+            (contact) => contact.Id === contactId
+        );
+    }
+}
+```
+
+**eventWithData.html**
+```html
+<template>
+    <lightning-card title="EventWithData" icon-name="standard:logging">
+        <template lwc:if={contacts.data}>
+            <lightning-layout class="slds-var-m-around_medium">
+                <lightning-layout-item>
+                    <!-- Each element must have a listener for non-bubbling events -->
+                    <template for:each={contacts.data} for:item="contact">
+                        <c-contact-list-item
+                            key={contact.Id}
+                            contact={contact}
+                            onselect={handleSelect}
+                        ></c-contact-list-item>
+                    </template>
+                </lightning-layout-item>
+                <lightning-layout-item class="slds-var-m-left_medium">
+                    <template lwc:if={selectedContact}>
+                        <img src={selectedContact.Picture__c} alt="Profile photo" />
+                        <p>{selectedContact.Name}</p>
+                        <p>{selectedContact.Title}</p>
+                    </template>
+                </lightning-layout-item>
+            </lightning-layout>
+        </template>
+    </lightning-card>
+</template>
+```
+
+## What Can You Pass?
+
+The `detail` property can contain:
+
+- **Primitives**: strings, numbers, booleans
+- **Objects**: plain JavaScript objects
+- **Arrays**: lists of data
+- **Complex data**: nested objects and arrays
+
+<Warning>
+  Do NOT pass DOM elements, functions, or symbols in event detail. Events can cross shadow DOM boundaries, and these types cannot be safely transmitted.
+</Warning>
+
+## Common Patterns
+
+### Passing a Single Value
+
+```javascript
+const event = new CustomEvent('select', {
+    detail: recordId  // Just the ID
+});
+this.dispatchEvent(event);
+```
+
+### Passing Multiple Values
+
+```javascript
+const event = new CustomEvent('update', {
+    detail: {
+        id: this.recordId,
+        name: this.name,
+        status: 'active'
+    }
+});
+this.dispatchEvent(event);
+```
+
+### Passing Complex Objects
+
+```javascript
+const event = new CustomEvent('datachange', {
+    detail: {
+        record: this.record,
+        changes: this.modifiedFields,
+        metadata: {
+            timestamp: Date.now(),
+            user: this.currentUser
+        }
+    }
+});
+this.dispatchEvent(event);
+```
+
+## Best Practices
+
+1. **Keep detail simple**: Only pass what the parent needs
+2. **Use meaningful property names**: Make the detail object self-documenting
+3. **Avoid passing entire objects unnecessarily**: Pass IDs when possible
+4. **Document the detail structure**: Clearly specify what data the event carries
+5. **Validate data before dispatching**: Ensure the detail contains valid data
+
+## Source Code
+
+View the complete source:
+- Child: `force-app/main/default/lwc/contactListItem/`
+- Parent: `force-app/main/default/lwc/eventWithData/`

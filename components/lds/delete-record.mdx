@@ -1,0 +1,251 @@
+---
+title: deleteRecord
+description: Delete records programmatically using Lightning Data Service
+---
+
+The `deleteRecord` method from `lightning/uiRecordApi` allows you to delete records programmatically without writing server-side Apex code. It leverages Lightning Data Service for automatic cache updates.
+
+## Import
+
+```javascript
+import { deleteRecord } from 'lightning/uiRecordApi';
+```
+
+## Usage
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { refreshApex } from '@salesforce/apex';
+import { deleteRecord } from 'lightning/uiRecordApi';
+import getAccountList from '@salesforce/apex/AccountController.getAccountList';
+import { reduceErrors } from 'c/ldsUtils';
+
+export default class LdsDeleteRecord extends LightningElement {
+    accounts;
+    error;
+
+    /** Wired Apex result so it can be refreshed programmatically */
+    wiredAccountsResult;
+
+    @wire(getAccountList)
+    wiredAccounts(result) {
+        this.wiredAccountsResult = result;
+        if (result.data) {
+            this.accounts = result.data;
+            this.error = undefined;
+        } else if (result.error) {
+            this.error = result.error;
+            this.accounts = undefined;
+        }
+    }
+
+    async deleteAccount(event) {
+        const recordId = event.target.dataset.recordid;
+
+        try {
+            await deleteRecord(recordId);
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Account deleted',
+                    variant: 'success'
+                })
+            );
+            await refreshApex(this.wiredAccountsResult);
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error deleting record',
+                    message: reduceErrors(error).join(', '),
+                    variant: 'error'
+                })
+            );
+        }
+    }
+}
+```
+
+```html
+<template>
+    <template lwc:if={accounts}>
+        <template for:each={accounts} for:item="account">
+            <lightning-layout key={account.Id}>
+                <lightning-layout-item flexibility="grow">
+                    {account.Name}
+                </lightning-layout-item>
+                <lightning-layout-item>
+                    <lightning-button-icon
+                        icon-name="utility:delete"
+                        onclick={deleteAccount}
+                        data-recordid={account.Id}
+                    ></lightning-button-icon>
+                </lightning-layout-item>
+            </lightning-layout>
+        </template>
+    </template>
+    <template lwc:elseif={error}>
+        <c-error-panel errors={error}></c-error-panel>
+    </template>
+</template>
+```
+
+## Syntax
+
+```javascript
+deleteRecord(recordId)
+```
+
+### Parameters
+
+**recordId** (String) - The ID of the record to delete
+
+### Return Value
+
+Returns a `Promise` that resolves when the record is successfully deleted. The promise resolves to `undefined`.
+
+## Example: Simple Delete
+
+```javascript
+import { deleteRecord } from 'lightning/uiRecordApi';
+
+async handleDelete() {
+    try {
+        await deleteRecord(this.recordId);
+        console.log('Record deleted successfully');
+        // Navigate away or refresh data
+    } catch (error) {
+        console.error('Error deleting record:', error);
+    }
+}
+```
+
+## Refreshing Data After Delete
+
+After deleting a record, refresh any cached data using `refreshApex`:
+
+```javascript
+import { refreshApex } from '@salesforce/apex';
+import { deleteRecord } from 'lightning/uiRecordApi';
+
+export default class MyComponent extends LightningElement {
+    wiredResult;
+
+    @wire(getRecords)
+    wiredRecords(result) {
+        this.wiredResult = result;
+    }
+
+    async handleDelete(event) {
+        const recordId = event.target.dataset.recordid;
+        try {
+            await deleteRecord(recordId);
+            // Refresh the wired data
+            await refreshApex(this.wiredResult);
+        } catch (error) {
+            // Handle error
+        }
+    }
+}
+```
+
+## Error Handling
+
+Use the `reduceErrors` utility to format error messages:
+
+```javascript
+import { reduceErrors } from 'c/ldsUtils';
+
+try {
+    await deleteRecord(recordId);
+} catch (error) {
+    const errorMessages = reduceErrors(error);
+    // errorMessages is an array of user-friendly error strings
+    console.error(errorMessages.join(', '));
+}
+```
+
+## LDS Utility: reduceErrors
+
+The `reduceErrors` utility function extracts user-friendly error messages from Lightning Data Service errors:
+
+```javascript
+/**
+ * Reduces one or more LDS errors into a string[] of error messages.
+ * @param {Object|Object[]} errors - Error object or array of error objects
+ * @returns {String[]} Array of error messages
+ */
+export function reduceErrors(errors) {
+    if (!Array.isArray(errors)) {
+        errors = [errors];
+    }
+
+    return (
+        errors
+            .filter((error) => !!error)
+            .map((error) => {
+                if (Array.isArray(error.body)) {
+                    return error.body.map((e) => e.message);
+                } else if (error.body && typeof error.body.message === 'string') {
+                    return error.body.message;
+                } else if (typeof error.message === 'string') {
+                    return error.message;
+                }
+                return 'Unknown error';
+            })
+            .reduce((prev, curr) => prev.concat(curr), [])
+            .filter((message) => !!message)
+    );
+}
+```
+
+## Confirmation Dialog
+
+Always confirm before deleting:
+
+```javascript
+import LightningConfirm from 'lightning/confirm';
+
+async handleDelete(event) {
+    const result = await LightningConfirm.open({
+        message: 'Are you sure you want to delete this record?',
+        variant: 'headerless',
+        label: 'Delete Record'
+    });
+
+    if (result) {
+        const recordId = event.target.dataset.recordid;
+        try {
+            await deleteRecord(recordId);
+            // Handle success
+        } catch (error) {
+            // Handle error
+        }
+    }
+}
+```
+
+## Features
+
+- **No Apex Required**: Delete records without writing server-side code
+- **Lightning Data Service**: Automatic cache invalidation
+- **Simple API**: Just pass the record ID
+- **Validation**: Automatic security and validation checks
+- **Security**: Respects object-level security
+
+<Warning>
+  Deleted records cannot be recovered unless your org has the Recycle Bin enabled and the user has permission to restore records. Always implement confirmation dialogs before deleting records.
+</Warning>
+
+<Warning>
+  The `deleteRecord` method respects object-level security. Users must have delete permission on the object. If the user lacks permission, the promise will reject with an error.
+</Warning>
+
+<Warning>
+  After deleting a record, you must manually refresh any displayed data using `refreshApex` or navigate away from the current page. Lightning Data Service will update its cache, but UI components won't automatically re-render.
+</Warning>
+
+## Related Components
+
+- [createRecord](/components/lds/create-record) - For programmatic record creation
+- [lightning-record-form](/components/lds/record-form) - For form-based record management

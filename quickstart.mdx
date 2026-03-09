@@ -1,80 +1,659 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get started with Lightning Web Components Recipes - explore examples and build your first component
 ---
 
-## Get started in three steps
+## Your First Steps with LWC Recipes
 
-Get your documentation site running locally and make your first customization.
+This guide will help you explore the Lightning Web Components Recipes app and understand how to use the examples to build your own components.
 
-### Step 1: Set up your local environment
+<Note>
+  Before starting, make sure you've completed the [Installation](/installation) and have the LWC Recipes app running in your Salesforce org.
+</Note>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+---
+
+## Exploring the App
+
+<Steps>
+  <Step title="Launch LWC Recipes">
+    1. Open your Salesforce org
+    2. Click the App Launcher (waffle icon)
+    3. Select **LWC** or **LWC Recipes** from the app list
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    You'll see the main navigation with recipe categories on the left.
+  </Step>
+  
+  <Step title="Browse recipe categories">
+    The recipes are organized into logical categories:
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    - **Hello** - Basic concepts and property binding
+    - **Composition** - Component composition and iteration
+    - **Event Handling** - Component events and communication
+    - **Data Access** - Apex integration and data management
+    - **Lightning Data Service** - Working with LDS and UI API
+    - **Navigation** - Navigate to records, pages, and lists
+    - **Third-Party Libraries** - Integrate external JavaScript libraries
+  </Step>
+  
+  <Step title="View component source code">
+    Each recipe includes a **View Source** button that links directly to the code on GitHub. Use this to see the complete implementation.
+  </Step>
+</Steps>
 
-### Step 2: Deploy your changes
+---
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+## Understanding the Code Structure
+
+Each Lightning Web Component consists of at least three files:
+
+<CodeGroup>
+
+```javascript hello.js
+// JavaScript file - Component logic
+import { LightningElement } from 'lwc';
+
+export default class Hello extends LightningElement {
+    greeting = 'World';
+}
+```
+
+```html hello.html
+<!-- HTML template - Component markup -->
+<template>
+    <lightning-card title="Hello" icon-name="custom:custom14">
+        <div class="slds-var-m-around_medium">Hello, {greeting}!</div>
+    </lightning-card>
+</template>
+```
+
+```xml hello.js-meta.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__AppPage</target>
+    </targets>
+</LightningComponentBundle>
+```
+
+</CodeGroup>
+
+---
+
+## Recipe #1: Hello World
+
+Let's start with the simplest example - property binding.
+
+### What It Does
+
+The `hello` component demonstrates how to bind a JavaScript property to the HTML template using curly braces `{}`.
+
+### The Code
+
+<CodeGroup>
+
+```javascript hello.js
+import { LightningElement } from 'lwc';
+
+export default class Hello extends LightningElement {
+    greeting = 'World';
+}
+```
+
+```html hello.html
+<template>
+    <lightning-card title="Hello" icon-name="custom:custom14">
+        <div class="slds-var-m-around_medium">Hello, {greeting}!</div>
+
+        <c-view-source source="lwc/hello" slot="footer">
+            Bind an HTML element to a component property.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+### Key Concepts
+
+- **Property Declaration**: `greeting = 'World'` defines a reactive property
+- **Data Binding**: `{greeting}` displays the property value in the template
+- **Lightning Card**: Uses the `<lightning-card>` base component for consistent styling
+
+---
+
+## Recipe #2: Calling Apex Methods
+
+One of the most common tasks is retrieving data from Salesforce using Apex.
+
+### Imperative Apex Call
+
+The `apexImperativeMethod` component shows how to call Apex methods imperatively using async/await.
+
+<CodeGroup>
+
+```javascript apexImperativeMethod.js
+import { LightningElement } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class ApexImperativeMethod extends LightningElement {
+    contacts;
+    error;
+
+    async handleLoad() {
+        try {
+            this.contacts = await getContactList();
+            this.error = undefined;
+        } catch (error) {
+            this.contacts = undefined;
+            this.error = error;
+        }
+    }
+}
+```
+
+```apex ContactController.cls
+public with sharing class ContactController {
+    @AuraEnabled
+    public static List<Contact> getContactList() {
+        return [
+            SELECT Id, Name, Title, Phone, Email, Picture__c
+            FROM Contact
+            WITH SECURITY_ENFORCED
+            ORDER BY Name
+            LIMIT 10
+        ];
+    }
+}
+```
+
+</CodeGroup>
+
+### Key Concepts
+
+- **@salesforce/apex Import**: Import Apex methods using the wire format
+- **Async/Await**: Modern JavaScript pattern for handling asynchronous operations
+- **Error Handling**: Always use try/catch to handle potential errors
+- **@AuraEnabled**: Required annotation for Apex methods called from LWC
+
+---
+
+## Recipe #3: Using Wire Adapters
+
+Wire adapters provide reactive data binding to Salesforce data and metadata.
+
+### Wire Adapter for UI API
+
+The `wireGetRecord` component uses the `@wire` decorator to fetch record data.
+
+<CodeGroup>
+
+```javascript wireGetRecord.js
+import { LightningElement, wire } from 'lwc';
+import { getRecord } from 'lightning/uiRecordApi';
+import NAME_FIELD from '@salesforce/schema/User.Name';
+import EMAIL_FIELD from '@salesforce/schema/User.Email';
+import Id from '@salesforce/user/Id';
+
+export default class WireGetRecord extends LightningElement {
+    userId = Id;
+
+    @wire(getRecord, {
+        recordId: '$userId',
+        fields: [NAME_FIELD],
+        optionalFields: [EMAIL_FIELD]
+    })
+    record;
+
+    get recordStr() {
+        return this.record ? JSON.stringify(this.record.data, null, 2) : '';
+    }
+}
+```
+
+</CodeGroup>
+
+### Key Concepts
+
+- **@wire Decorator**: Automatically invokes the wire adapter when parameters change
+- **Reactive Parameters**: Use `$` prefix (e.g., `$userId`) for reactive properties
+- **Schema Import**: Import field references using `@salesforce/schema`
+- **Current User**: Access logged-in user ID with `@salesforce/user/Id`
+
+---
+
+## Recipe #4: Component Events
+
+Components communicate through custom events.
+
+### Simple Event Handling
+
+The `eventSimple` component demonstrates basic event handling.
+
+<CodeGroup>
+
+```javascript eventSimple.js
+import { LightningElement } from 'lwc';
+
+export default class EventSimple extends LightningElement {
+    page = 1;
+
+    handlePrevious() {
+        if (this.page > 1) {
+            this.page = this.page - 1;
+        }
+    }
+
+    handleNext() {
+        this.page = this.page + 1;
+    }
+}
+```
+
+```html eventSimple.html
+<template>
+    <lightning-card title="EventSimple" icon-name="custom:custom14">
+        <div class="slds-var-m-around_medium">
+            <p class="slds-var-m-bottom_small">Page {page}</p>
+            <lightning-button
+                label="Previous"
+                onclick={handlePrevious}
+                disabled={page === 1}>
+            </lightning-button>
+            <lightning-button
+                label="Next"
+                onclick={handleNext}
+                class="slds-var-m-left_small">
+            </lightning-button>
+        </div>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+### Key Concepts
+
+- **Event Handlers**: Use `onclick={handlerName}` to bind event handlers
+- **Reactive Properties**: Any property used in the template is reactive
+- **Conditional Attributes**: Dynamically disable buttons based on state
+
+---
+
+## Recipe #5: Rendering Lists
+
+Display collections of data using `template for:each`.
+
+### Iteration Example
+
+The `compositionIteration` component shows how to render a list of contacts.
+
+<CodeGroup>
+
+```javascript compositionIteration.js
+import { LightningElement } from 'lwc';
+
+export default class CompositionIteration extends LightningElement {
+    contacts = [
+        {
+            Id: '003171931112854375',
+            Name: 'Amy Taylor',
+            Title: 'VP of Engineering',
+            Phone: '6172559632',
+            Picture__c:
+                'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/amy_taylor.jpg'
+        },
+        {
+            Id: '003192301009134555',
+            Name: 'Michael Jones',
+            Title: 'VP of Sales',
+            Phone: '6172551122',
+            Picture__c:
+                'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/michael_jones.jpg'
+        },
+        {
+            Id: '003848991274589432',
+            Name: 'Jennifer Wu',
+            Title: 'CEO',
+            Phone: '6172558877',
+            Picture__c:
+                'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/jennifer_wu.jpg'
+        }
+    ];
+}
+```
+
+```html compositionIteration.html
+<template>
+    <lightning-card title="CompositionIteration">
+        <div class="slds-var-m-around_medium">
+            <template for:each={contacts} for:item="contact">
+                <c-contact-tile
+                    key={contact.Id}
+                    contact={contact}>
+                </c-contact-tile>
+            </template>
+        </div>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+### Key Concepts
+
+- **for:each Directive**: Loop through arrays in templates
+- **for:item**: Defines the variable name for each iteration
+- **key Attribute**: Required for performance - use unique identifiers
+- **Component Composition**: Render child components in loops
+
+---
+
+## Recipe #6: Lightning Data Service
+
+Create records using Lightning Data Service UI API.
+
+### Creating Records
+
+The `ldsCreateRecord` component demonstrates the `createRecord` API.
+
+<CodeGroup>
+
+```javascript ldsCreateRecord.js
+import { LightningElement } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { createRecord } from 'lightning/uiRecordApi';
+import { reduceErrors } from 'c/ldsUtils';
+import ACCOUNT_OBJECT from '@salesforce/schema/Account';
+import NAME_FIELD from '@salesforce/schema/Account.Name';
+
+export default class LdsCreateRecord extends LightningElement {
+    accountId;
+    name = '';
+
+    handleNameChange(event) {
+        this.accountId = undefined;
+        this.name = event.target.value;
+    }
+
+    async createAccount() {
+        const fields = {};
+        fields[NAME_FIELD.fieldApiName] = this.name;
+        const recordInput = { apiName: ACCOUNT_OBJECT.objectApiName, fields };
+        try {
+            const account = await createRecord(recordInput);
+            this.accountId = account.id;
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Account created',
+                    variant: 'success'
+                })
+            );
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error creating record',
+                    message: reduceErrors(error).join(', '),
+                    variant: 'error'
+                })
+            );
+        }
+    }
+}
+```
+
+</CodeGroup>
+
+### Key Concepts
+
+- **createRecord API**: Create records without Apex
+- **Schema Imports**: Reference objects and fields safely
+- **Toast Events**: Display success/error messages to users
+- **Error Handling**: Use utility functions to format error messages
+
+---
+
+## Recipe #7: Using Third-Party Libraries
+
+Integrate JavaScript libraries like Chart.js for data visualization.
+
+### Chart.js Integration
+
+The `libsChartjs` component shows how to load and use external libraries.
+
+<CodeGroup>
+
+```javascript libsChartjs.js (excerpt)
+import { LightningElement } from 'lwc';
+import chartjs from '@salesforce/resourceUrl/chartJs';
+import { loadScript } from 'lightning/platformResourceLoader';
+
+export default class LibsChartjs extends LightningElement {
+    error;
+    chart;
+    chartjsInitialized = false;
+
+    config = {
+        type: 'doughnut',
+        data: {
+            datasets: [
+                {
+                    data: [30, 50, 20, 40, 60],
+                    backgroundColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(54, 162, 235)'
+                    ],
+                    label: 'Dataset 1'
+                }
+            ],
+            labels: ['Red', 'Orange', 'Yellow', 'Green', 'Blue']
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    };
+
+    async renderedCallback() {
+        if (this.chartjsInitialized) {
+            return;
+        }
+        this.chartjsInitialized = true;
+
+        try {
+            await loadScript(this, chartjs);
+            const canvas = document.createElement('canvas');
+            this.template.querySelector('div.chart').appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+            this.chart = new window.Chart(ctx, this.config);
+        } catch (error) {
+            this.error = error;
+        }
+    }
+}
+```
+
+</CodeGroup>
+
+### Key Concepts
+
+- **Static Resources**: Upload libraries as static resources
+- **loadScript API**: Load external JavaScript files
+- **renderedCallback**: Lifecycle hook that runs after rendering
+- **Initialization Flag**: Prevent multiple library loads
+
+---
+
+## Recipe #8: Navigation
+
+Navigate to record pages programmatically.
+
+### NavigationMixin Example
+
+The `navToRecord` component uses the Navigation service.
+
+<CodeGroup>
+
+```javascript navToRecord.js
+import { LightningElement, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import getSingleContact from '@salesforce/apex/ContactController.getSingleContact';
+
+export default class NavToRecord extends NavigationMixin(LightningElement) {
+    @wire(getSingleContact) contact;
+
+    navigateToContact() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.contact.data.Id,
+                objectApiName: 'Contact',
+                actionName: 'view'
+            }
+        });
+    }
+
+    navigateToEdit() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.contact.data.Id,
+                objectApiName: 'Contact',
+                actionName: 'edit'
+            }
+        });
+    }
+}
+```
+
+</CodeGroup>
+
+### Key Concepts
+
+- **NavigationMixin**: Extend your component with navigation capabilities
+- **Page Reference**: Define navigation targets with type and attributes
+- **Standard Pages**: Navigate to view, edit, or create record pages
+- **Action Names**: Use 'view', 'edit', or 'new' for different actions
+
+---
+
+## Build Your First Component
+
+Now that you've explored the recipes, try building your own component:
+
+<Steps>
+  <Step title="Create a new component">
+    In VS Code with Salesforce extensions:
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    1. Press **Cmd+Shift+P** (Mac) or **Ctrl+Shift+P** (Windows)
+    2. Select **SFDX: Create Lightning Web Component**
+    3. Name your component (e.g., `myFirstComponent`)
+  </Step>
+  
+  <Step title="Add component logic">
+    Choose a recipe that matches your use case and adapt the code:
+    
+    - Need to fetch data? Start with `apexImperativeMethod` or `wireGetRecord`
+    - Building a form? Look at `ldsCreateRecord`
+    - Displaying a list? Check out `compositionIteration`
+    - Need events? Explore `eventSimple` or `eventWithData`
+  </Step>
+  
+  <Step title="Deploy and test">
+    Deploy your component to your scratch org:
+    
+    ```bash
+    sf project deploy start
+    ```
+    
+    Then add it to a Lightning page using the Lightning App Builder.
+  </Step>
+</Steps>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+---
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+## Best Practices from the Recipes
 
 <CardGroup cols={2}>
+  <Card title="Use Wire Adapters" icon="plug">
+    Prefer `@wire` for data binding - it's reactive and efficient
+  </Card>
+  
+  <Card title="Handle Errors" icon="shield">
+    Always use try/catch blocks and display user-friendly error messages
+  </Card>
+  
+  <Card title="Import Schemas" icon="database">
+    Use `@salesforce/schema` imports for type-safe field references
+  </Card>
+  
+  <Card title="Follow Naming Conventions" icon="tag">
+    Use camelCase for properties and methods, PascalCase for component names
+  </Card>
+</CardGroup>
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+---
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+## Learning Path
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+<Steps>
+  <Step title="Week 1: Basics">
+    - Explore `hello`, `clock`, `eventSimple`
+    - Learn property binding and event handling
+    - Build a simple counter or calculator component
+  </Step>
+  
+  <Step title="Week 2: Data Access">
+    - Study `apexImperativeMethod`, `wireGetRecord`
+    - Understand wire adapters vs imperative calls
+    - Create a component that displays Salesforce data
+  </Step>
+  
+  <Step title="Week 3: Advanced Features">
+    - Dive into `ldsCreateRecord`, `compositionIteration`
+    - Learn Lightning Data Service and component composition
+    - Build a multi-component application
+  </Step>
+  
+  <Step title="Week 4: Polish & Deploy">
+    - Explore `libsChartjs`, `navToRecord`
+    - Add third-party libraries and navigation
+    - Deploy your complete solution
+  </Step>
+</Steps>
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+---
 
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="Complete Trailhead" icon="trailhead" href="https://trailhead.salesforce.com/content/learn/projects/quick-start-lwc-recipes-app">
+    Earn a badge while learning the recipes
+  </Card>
+  
+  <Card title="LWC Dev Guide" icon="book" href="https://developer.salesforce.com/docs/component-library/documentation/en/lwc">
+    Official Lightning Web Components documentation
+  </Card>
+  
+  <Card title="Component Reference" icon="shapes" href="https://developer.salesforce.com/docs/component-library/overview/components">
+    Browse all base Lightning components
+  </Card>
+  
+  <Card title="GitHub Issues" icon="github" href="https://github.com/trailheadapps/lwc-recipes/issues">
+    Ask questions and report issues
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  **Pro Tip**: Use the Code Tours feature in VS Code to get guided walkthroughs of complex recipes. Install the [CodeTour extension](https://marketplace.visualstudio.com/items?itemName=vsls-contrib.codetour) to get started.
 </Note>

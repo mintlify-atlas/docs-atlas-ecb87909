@@ -1,0 +1,166 @@
+---
+title: Composition with Iteration
+description: Learn how to iterate over data arrays and render multiple instances of child components using for:each in Lightning Web Components.
+---
+
+## Overview
+
+The `compositionIteration` component demonstrates how to combine component composition with template iteration. This pattern allows you to:
+
+- Loop through arrays of data using `for:each`
+- Render multiple instances of a child component
+- Pass unique data to each component instance
+- Use proper keys for list rendering
+
+## Parent Component Structure
+
+### JavaScript (compositionIteration.js)
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class CompositionIteration extends LightningElement {
+    contacts = [
+        {
+            Id: '003171931112854375',
+            Name: 'Amy Taylor',
+            Title: 'VP of Engineering',
+            Phone: '6172559632',
+            Picture__c:
+                'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/amy_taylor.jpg'
+        },
+        {
+            Id: '003192301009134555',
+            Name: 'Michael Jones',
+            Title: 'VP of Sales',
+            Phone: '6172551122',
+            Picture__c:
+                'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/michael_jones.jpg'
+        },
+        {
+            Id: '003848991274589432',
+            Name: 'Jennifer Wu',
+            Title: 'CEO',
+            Phone: '6172558877',
+            Picture__c:
+                'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/jennifer_wu.jpg'
+        }
+    ];
+}
+```
+
+### Template (compositionIteration.html)
+
+```html
+<template>
+    <lightning-card title="CompositionIteration" icon-name="custom:custom57">
+        <div class="slds-var-m-around_medium">
+            <template for:each={contacts} for:item="contact">
+                <fieldset
+                    key={contact.Id}
+                    class="slds-var-p-horizontal_x-small"
+                >
+                    <legend>c-contact-tile</legend>
+                    <c-contact-tile contact={contact}></c-contact-tile>
+                </fieldset>
+            </template>
+        </div>
+    </lightning-card>
+</template>
+```
+
+## Child Component
+
+This example uses the same `contactTile` component from the basics example:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class ContactTile extends LightningElement {
+    @api contact;
+}
+```
+
+## Key Concepts
+
+### for:each Directive
+
+The `for:each` directive iterates over an array and renders template content for each item:
+
+```html
+<template for:each={contacts} for:item="contact">
+    <!-- Content repeated for each contact -->
+</template>
+```
+
+**Syntax:**
+- `for:each={arrayName}` - The array to iterate over
+- `for:item="itemName"` - Variable name for each item
+- `key={item.uniqueId}` - Required unique key for each iteration
+
+### Key Attribute
+
+Every element inside a `for:each` loop must have a unique `key` attribute:
+
+```html
+<fieldset key={contact.Id}>
+    <!-- This key helps LWC track elements efficiently -->
+</fieldset>
+```
+
+**Best practices:**
+- Use a stable, unique identifier (like an Id field)
+- Don't use array index as key
+- The key helps the framework optimize rendering
+
+### Component Instance Creation
+
+Each iteration creates a new instance of the child component:
+
+```html
+<template for:each={contacts} for:item="contact">
+    <fieldset key={contact.Id}>
+        <c-contact-tile contact={contact}></c-contact-tile>
+    </fieldset>
+</template>
+```
+
+This creates three separate `contactTile` instances, each with its own `contact` data.
+
+## Data Flow
+
+1. Parent component defines an array of contacts
+2. Template iterates over the array using `for:each`
+3. Each iteration creates a child component instance
+4. Each child receives its specific contact object via `@api` property
+5. Child components render independently with their own data
+
+## Usage Patterns
+
+This pattern is ideal for:
+
+- Displaying lists of similar items (contacts, products, records)
+- Creating dynamic grids or card layouts
+- Rendering search results
+- Building data tables with custom row components
+- Any scenario requiring multiple component instances with different data
+
+## Alternative: iterator:it
+
+For more control, you can use `iterator:it` to access index and first/last properties:
+
+```html
+<template iterator:it={contacts}>
+    <div key={it.value.Id}>
+        <c-contact-tile contact={it.value}></c-contact-tile>
+        <p lwc:if={it.first}>First item</p>
+        <p lwc:if={it.last}>Last item</p>
+        <p>Index: {it.index}</p>
+    </div>
+</template>
+```
+
+## Source Files
+
+- Parent: `force-app/main/default/lwc/compositionIteration/`
+- Child: `force-app/main/default/lwc/contactTile/`

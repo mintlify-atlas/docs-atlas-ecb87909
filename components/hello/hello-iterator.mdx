@@ -1,0 +1,133 @@
+---
+title: 'Hello Iterator'
+description: 'Advanced iteration with the iterator directive for first and last items'
+---
+
+## Overview
+
+The `helloIterator` component demonstrates advanced iteration in Lightning Web Components using the `iterator` directive. Unlike `for:each`, the iterator provides additional metadata about each item's position in the array, allowing you to apply special behavior to the first and last items.
+
+## What It Does
+
+This component displays a list of contacts with special styling or behavior for the first and last items. The iterator provides access to properties like `first`, `last`, `index`, and `value`, enabling more sophisticated list rendering scenarios.
+
+## Component Code
+
+<CodeGroup>
+
+```javascript helloIterator.js
+import { LightningElement } from 'lwc';
+
+export default class HelloIterator extends LightningElement {
+    contacts = [
+        {
+            Id: '003171931112854375',
+            Name: 'Amy Taylor',
+            Title: 'VP of Engineering'
+        },
+        {
+            Id: '003192301009134555',
+            Name: 'Michael Jones',
+            Title: 'VP of Sales'
+        },
+        {
+            Id: '003848991274589432',
+            Name: 'Jennifer Wu',
+            Title: 'CEO'
+        }
+    ];
+}
+```
+
+```html helloIterator.html
+<template>
+    <lightning-card title="HelloIterator" icon-name="custom:custom14">
+        <ul class="slds-var-m-around_medium">
+            <template iterator:it={contacts}>
+                <li key={it.value.Id}>
+                    <div lwc:if={it.first} class="list-first"></div>
+                    {it.value.Name}, {it.value.Title}
+                    <div lwc:if={it.last} class="list-last"></div>
+                </li>
+            </template>
+        </ul>
+
+        <c-view-source source="lwc/helloIterator" slot="footer">
+            Loop through an array with special behavior for the first and last
+            items.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+- **iterator Directive**: Provides enhanced iteration with metadata about each item
+- **Iterator Properties**:
+  - `value`: The current item in the array
+  - `index`: The zero-based index of the current item
+  - `first`: Boolean indicating if this is the first item
+  - `last`: Boolean indicating if this is the last item
+- **Accessing Item Data**: Use `it.value.propertyName` to access properties of the current item
+- **Conditional Rendering**: Combine with `lwc:if` to apply special behavior to specific items
+
+## How It Works
+
+1. The `iterator:it` directive creates an iterator variable named `it`
+2. For each contact in the array, the iterator provides:
+   - `it.value`: The contact object
+   - `it.first`: `true` only for Amy Taylor (first item)
+   - `it.last`: `true` only for Jennifer Wu (last item)
+   - `it.index`: 0, 1, or 2 respectively
+3. The `key` uses `it.value.Id` to uniquely identify each list item
+4. Special divs are rendered for the first and last items using `lwc:if`
+5. Contact information is displayed using `it.value.Name` and `it.value.Title`
+
+## Iterator Properties Reference
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `value` | any | The current item from the array |
+| `index` | number | Zero-based index of the current item |
+| `first` | boolean | `true` if this is the first item |
+| `last` | boolean | `true` if this is the last item |
+
+## Usage Example
+
+To use this component in your Salesforce org:
+
+```html
+<c-hello-iterator></c-hello-iterator>
+```
+
+The component renders:
+```
+[first marker]
+• Amy Taylor, VP of Engineering
+• Michael Jones, VP of Sales
+• Jennifer Wu, CEO
+[last marker]
+```
+
+## When to Use iterator vs for:each
+
+**Use `iterator` when you need:**
+- To identify the first or last item in a list
+- Access to the item's index
+- Special styling or behavior for specific positions
+- Separators between items (but not before first or after last)
+
+**Use `for:each` when you:**
+- Need simple iteration without positional metadata
+- Want cleaner, more concise template syntax
+- Don't need to know if an item is first, last, or its index
+
+For simple iteration, see the [Hello For Each](/components/hello/hello-for-each) component.
+
+## Source Code
+
+View the complete source code on GitHub:
+- [helloIterator.js](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloIterator/helloIterator.js)
+- [helloIterator.html](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloIterator/helloIterator.html)

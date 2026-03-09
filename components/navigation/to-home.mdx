@@ -1,0 +1,158 @@
+---
+title: Navigate to Home
+description: Navigate to various home pages including standard home, Chatter, Files, and custom tabs
+---
+
+Navigate to different home pages within Salesforce, including the standard home page, Chatter home, Files home, and custom navigation tabs.
+
+## Source
+
+- `force-app/main/default/lwc/navToHome/navToHome.js`
+- `force-app/main/default/lwc/navToChatterHome/navToChatterHome.js`
+- `force-app/main/default/lwc/navToFilesHome/navToFilesHome.js`
+- `force-app/main/default/lwc/navToHelloTab/navToHelloTab.js`
+
+## Standard Home Page
+
+```javascript
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToHome extends NavigationMixin(LightningElement) {
+    navigateToHome() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__namedPage',
+            attributes: {
+                pageName: 'home'
+            }
+        });
+    }
+}
+```
+
+## Chatter Home
+
+```javascript
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToChatterHome extends NavigationMixin(
+    LightningElement
+) {
+    navigateToChatter() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__namedPage',
+            attributes: {
+                pageName: 'chatter'
+            }
+        });
+    }
+}
+```
+
+## Files Home
+
+```javascript
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToFilesHome extends NavigationMixin(LightningElement) {
+    navigateToFilesHome() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'ContentDocument',
+                actionName: 'home'
+            }
+        });
+    }
+}
+```
+
+## Custom Navigation Tab
+
+```javascript
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToHelloTab extends NavigationMixin(LightningElement) {
+    navigateToHelloTab() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: {
+                apiName: 'Hello'
+            }
+        });
+    }
+}
+```
+
+## NavigationMixin
+
+Extend your component with `NavigationMixin` to access navigation capabilities:
+
+```javascript
+export default class NavToHome extends NavigationMixin(LightningElement) {
+    // component code
+}
+```
+
+## PageReference Types
+
+### Named Pages
+
+<ParamField path="type" type="string" required>
+  Set to `standard__namedPage` for standard Salesforce pages
+</ParamField>
+
+<ParamField path="attributes.pageName" type="string" required>
+  The name of the page. Options include:
+  - `home` - Standard home page
+  - `chatter` - Chatter home page
+</ParamField>
+
+### Object Home Pages
+
+<ParamField path="type" type="string" required>
+  Set to `standard__objectPage` for object home pages
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the object (e.g., 'ContentDocument' for Files)
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  Set to `home` to navigate to the object's home page
+</ParamField>
+
+### Navigation Items
+
+<ParamField path="type" type="string" required>
+  Set to `standard__navItemPage` for custom navigation tabs
+</ParamField>
+
+<ParamField path="attributes.apiName" type="string" required>
+  The API name of the custom tab or navigation item
+</ParamField>
+
+## Navigation Types Summary
+
+| Destination | Type | Attributes |
+|------------|------|------------|
+| Standard Home | `standard__namedPage` | `pageName: 'home'` |
+| Chatter Home | `standard__namedPage` | `pageName: 'chatter'` |
+| Files Home | `standard__objectPage` | `objectApiName: 'ContentDocument'`, `actionName: 'home'` |
+| Custom Tab | `standard__navItemPage` | `apiName: '<TabApiName>'` |
+
+## Key Features
+
+- Navigate to standard home page
+- Navigate to Chatter feed
+- Navigate to Files home
+- Navigate to custom navigation tabs
+- Type-safe navigation with PageReference
+
+## Related
+
+- [Navigate to Record](/components/navigation/to-record)
+- [Navigate to List View](/components/navigation/to-list-view)

@@ -1,0 +1,145 @@
+---
+title: GraphQL Contacts
+description: Get records using a GraphQL query and @wire
+---
+
+## Overview
+
+The `graphqlContacts` component demonstrates how to fetch Salesforce records using GraphQL with the `@wire` decorator. It queries Contact records with filtering, ordering, and field selection.
+
+## Source
+
+`force-app/main/default/lwc/graphqlContacts`
+
+## Key Features
+
+- GraphQL query with `@wire` adapter
+- Field filtering using `where` clause
+- Ordering results with `orderBy`
+- Field aliases for custom fields
+- Data transformation in getters
+
+## GraphQL Query Syntax
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { gql, graphql } from 'lightning/graphql';
+
+export default class GraphqlContacts extends LightningElement {
+    @wire(graphql, {
+        query: gql`
+            query getContacts {
+                uiapi {
+                    query {
+                        Contact(
+                            where: { Picture__c: { ne: null } }
+                            first: 5
+                            orderBy: { Name: { order: ASC } }
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Name {
+                                        value
+                                    }
+                                    Phone {
+                                        value
+                                    }
+                                    Picture__c: Picture__c {
+                                        value
+                                    }
+                                    Title {
+                                        value
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    graphql;
+}
+```
+
+## Importing GraphQL
+
+The `gql` tag function and `graphql` adapter must be imported from `lightning/graphql`:
+
+```javascript
+import { gql, graphql } from 'lightning/graphql';
+```
+
+- **`gql`**: Template tag for defining GraphQL queries
+- **`graphql`**: Wire adapter for executing queries
+
+## Query Parameters
+
+### where
+
+Filter records based on field criteria:
+
+```javascript
+where: { Picture__c: { ne: null } }
+```
+
+### first
+
+Limit the number of records returned:
+
+```javascript
+first: 5
+```
+
+### orderBy
+
+Sort results by field:
+
+```javascript
+orderBy: { Name: { order: ASC } }
+```
+
+## Field Aliases
+
+Use aliases for custom fields to ensure stable field names even if Salesforce updates the API name:
+
+```javascript
+Picture__c: Picture__c {
+    value
+}
+```
+
+The alias `Picture__c:` ensures consistent access to the field value in your code.
+
+## Data Transformation
+
+Transform the GraphQL response structure into a simpler format:
+
+```javascript
+get contacts() {
+    return this.graphql.data?.uiapi.query.Contact.edges.map((edge) => ({
+        Id: edge.node.Id,
+        Name: edge.node.Name.value,
+        Phone: edge.node.Phone.value,
+        Picture__c: edge.node.Picture__c.value,
+        Title: edge.node.Title.value
+    }));
+}
+```
+
+## Error Handling
+
+Access errors through the wire adapter result:
+
+```html
+<template lwc:if={graphql.errors}>
+    <c-error-panel errors={graphql.errors}></c-error-panel>
+</template>
+```
+
+## See Also
+
+- [GraphQL Variables](/components/graphql/variables)
+- [GraphQL Pagination](/components/graphql/pagination)
+- [GraphQL Multiple Objects](/components/graphql/multiple-objects)

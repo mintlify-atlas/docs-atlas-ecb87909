@@ -1,0 +1,63 @@
+---
+title: 'Hello'
+description: 'Basic property binding in Lightning Web Components'
+---
+
+## Overview
+
+The `hello` component demonstrates the most basic form of data binding in Lightning Web Components. It shows how to bind an HTML element to a component property using curly brace syntax `{propertyName}`.
+
+## What It Does
+
+This component displays a simple greeting message by binding the `greeting` property to the template. The property value "World" is rendered inside the template, demonstrating one-way data binding from JavaScript to HTML.
+
+## Component Code
+
+<CodeGroup>
+
+```javascript hello.js
+import { LightningElement } from 'lwc';
+
+export default class Hello extends LightningElement {
+    greeting = 'World';
+}
+```
+
+```html hello.html
+<template>
+    <lightning-card title="Hello" icon-name="custom:custom14">
+        <div class="slds-var-m-around_medium">Hello, {greeting}!</div>
+
+        <c-view-source source="lwc/hello" slot="footer">
+            Bind an HTML element to a component property.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+- **Property Declaration**: The `greeting` property is declared as a class field with a default value
+- **Data Binding**: Curly braces `{}` are used to bind the property value to the template
+- **One-Way Binding**: Data flows from the JavaScript class to the HTML template
+
+## Usage Example
+
+To use this component in your Salesforce org:
+
+```html
+<c-hello></c-hello>
+```
+
+The component will render:
+```
+Hello, World!
+```
+
+## Source Code
+
+View the complete source code on GitHub:
+- [hello.js](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/hello/hello.js)
+- [hello.html](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/hello/hello.html)

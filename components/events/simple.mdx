@@ -1,0 +1,124 @@
+---
+title: Simple Events
+description: Basic child-to-parent communication using custom events
+---
+
+Simple events demonstrate the fundamental pattern for child-to-parent communication in Lightning Web Components using custom events.
+
+## Overview
+
+This example shows how a child component (`c-paginator`) fires custom events that are handled by a parent component (`c-event-simple`) to update the page state.
+
+## Child Component: c-paginator
+
+The paginator component dispatches simple custom events without data.
+
+### JavaScript (paginator.js)
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class Paginator extends LightningElement {
+    handlePrevious() {
+        this.dispatchEvent(new CustomEvent('previous'));
+    }
+
+    handleNext() {
+        this.dispatchEvent(new CustomEvent('next'));
+    }
+}
+```
+
+**Key Points:**
+- Creates `CustomEvent` instances with event names ('previous', 'next')
+- Uses `this.dispatchEvent()` to fire events
+- No additional configuration needed for basic events
+
+### Template (paginator.html)
+
+```html
+<template>
+    <lightning-layout>
+        <lightning-layout-item>
+            <lightning-button
+                label="Previous"
+                icon-name="utility:chevronleft"
+                onclick={handlePrevious}
+            ></lightning-button>
+        </lightning-layout-item>
+        <lightning-layout-item flexibility="grow"></lightning-layout-item>
+        <lightning-layout-item>
+            <lightning-button
+                label="Next"
+                icon-name="utility:chevronright"
+                icon-position="right"
+                onclick={handleNext}
+            ></lightning-button>
+        </lightning-layout-item>
+    </lightning-layout>
+</template>
+```
+
+## Parent Component: c-event-simple
+
+The parent component listens for and handles the custom events.
+
+### JavaScript (eventSimple.js)
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class EventSimple extends LightningElement {
+    page = 1;
+
+    handlePrevious() {
+        if (this.page > 1) {
+            this.page = this.page - 1;
+        }
+    }
+
+    handleNext() {
+        this.page = this.page + 1;
+    }
+}
+```
+
+### Template (eventSimple.html)
+
+```html
+<template>
+    <lightning-card title="EventSimple" icon-name="standard:logging">
+        <div class="slds-var-m-around_medium">
+            <p class="slds-text-align_center slds-var-m-vertical_medium content">
+                Page {page}
+            </p>
+            <fieldset class="slds-var-p-around_x-small">
+                <legend>c-paginator</legend>
+                <c-paginator
+                    class="slds-show slds-is-relative"
+                    onprevious={handlePrevious}
+                    onnext={handleNext}
+                ></c-paginator>
+            </fieldset>
+        </div>
+    </lightning-card>
+</template>
+```
+
+**Key Points:**
+- Event listeners are added using `on<eventname>` syntax (e.g., `onprevious`, `onnext`)
+- Event names are automatically converted to lowercase in HTML
+- Handler methods update component state based on which event fired
+
+## Event Flow
+
+1. User clicks a button in the paginator component
+2. Click handler creates and dispatches a `CustomEvent`
+3. Parent component's event listener catches the event
+4. Parent's handler method updates the page number
+5. Template re-renders with new page value
+
+## Source Files
+
+- Child: `force-app/main/default/lwc/paginator/`
+- Parent: `force-app/main/default/lwc/eventSimple/`

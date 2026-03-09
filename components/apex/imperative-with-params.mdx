@@ -1,0 +1,275 @@
+---
+title: Imperative Apex with Parameters
+description: Call an Apex method imperatively with parameters using async/await
+---
+
+This component demonstrates how to call an Apex method imperatively while passing parameters. This pattern is ideal for search functionality and user-driven operations.
+
+## Implementation
+
+<CodeGroup>
+
+```javascript apexImperativeMethodWithParams.js
+import { LightningElement } from 'lwc';
+import findContacts from '@salesforce/apex/ContactController.findContacts';
+
+export default class ApexImperativeMethodWithParams extends LightningElement {
+    searchKey = '';
+    contacts;
+    error;
+
+    handleKeyChange(event) {
+        this.searchKey = event.target.value;
+    }
+
+    async handleSearch() {
+        try {
+            this.contacts = await findContacts({ searchKey: this.searchKey });
+            this.error = undefined;
+        } catch (error) {
+            this.error = error;
+            this.contacts = undefined;
+        }
+    }
+}
+```
+
+```html apexImperativeMethodWithParams.html
+<template>
+    <lightning-card
+        title="ApexImperativeMethodWithParams"
+        icon-name="custom:custom63"
+    >
+        <div class="slds-var-m-around_medium">
+            <lightning-layout
+                vertical-align="end"
+                class="slds-var-m-bottom_small"
+            >
+                <lightning-layout-item flexibility="grow">
+                    <lightning-input
+                        type="search"
+                        onchange={handleKeyChange}
+                        label="Search"
+                        value={searchKey}
+                    ></lightning-input>
+                </lightning-layout-item>
+                <lightning-layout-item class="slds-var-p-left_xx-small">
+                    <lightning-button
+                        label="Search"
+                        onclick={handleSearch}
+                    ></lightning-button>
+                </lightning-layout-item>
+            </lightning-layout>
+            <template lwc:if={contacts}>
+                <template for:each={contacts} for:item="contact">
+                    <p key={contact.Id}>{contact.Name}</p>
+                </template>
+            </template>
+            <template lwc:elseif={error}>
+                <c-error-panel errors={error}></c-error-panel>
+            </template>
+        </div>
+        <c-view-source
+            source="lwc/apexImperativeMethodWithParams"
+            slot="footer"
+        >
+            Call an Apex method with parameters imperatively.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+```apex ContactController.cls
+public with sharing class ContactController {
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> findContacts(String searchKey) {
+        String key = '%' + searchKey + '%';
+        return [
+            SELECT Id, Name, Title, Phone, Email, Picture__c
+            FROM Contact
+            WHERE Name LIKE :key AND Picture__c != NULL
+            WITH USER_MODE
+            LIMIT 10
+        ];
+    }
+}
+```
+
+</CodeGroup>
+
+## Key Features
+
+### Passing Parameters
+
+Pass parameters as an object with property names matching Apex parameter names:
+
+```javascript
+this.contacts = await findContacts({ searchKey: this.searchKey });
+//                                  ^
+//                                  Parameter object
+```
+
+### Parameter Object Syntax
+
+```javascript
+await findContacts({ searchKey: this.searchKey })
+//                   ^          ^
+//                   |          |
+//                   |          Component property value
+//                   Apex parameter name
+```
+
+### Separate Input Handling
+
+Handle input changes separately from search execution:
+
+```javascript
+handleKeyChange(event) {
+    this.searchKey = event.target.value; // Update property
+}
+
+async handleSearch() {
+    // Execute search when user clicks button
+    this.contacts = await findContacts({ searchKey: this.searchKey });
+}
+```
+
+### User-Controlled Execution
+
+The search only executes when the user clicks the Search button:
+
+```html
+<lightning-button
+    label="Search"
+    onclick={handleSearch}
+></lightning-button>
+```
+
+## Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `searchKey` | String | The current search input value |
+| `contacts` | Array | List of contacts matching the search |
+| `error` | Object | Error object if the call fails |
+
+## Parameters
+
+### Apex Method Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `searchKey` | String | Search term to filter contacts by name |
+
+## Error Handling
+
+Use try/catch to handle errors gracefully:
+
+```javascript
+try {
+    this.contacts = await findContacts({ searchKey: this.searchKey });
+    this.error = undefined;
+} catch (error) {
+    this.error = error;
+    this.contacts = undefined;
+}
+```
+
+## Multiple Parameters Example
+
+For methods with multiple parameters:
+
+```javascript
+// Apex method signature:
+// public static List<Contact> findContacts(String searchKey, Integer limitSize, String orderBy)
+
+// JavaScript call:
+this.contacts = await findContacts({
+    searchKey: this.searchKey,
+    limitSize: 20,
+    orderBy: 'Name'
+});
+```
+
+## Parameter Types
+
+Supported parameter types:
+
+| JavaScript Type | Apex Type |
+|----------------|----------|
+| String | String |
+| Number | Integer, Decimal, Double |
+| Boolean | Boolean |
+| Object | Custom Apex class, sObject |
+| Array | List |
+| null/undefined | null |
+
+## When to Use
+
+Use imperative calls with parameters when:
+- Search functionality needs a submit button
+- You want to validate input before calling Apex
+- You need to combine multiple inputs into one call
+- You want to avoid calling Apex on every keystroke
+- You need to perform operations before/after the Apex call
+
+## Comparison with Wire and Parameters
+
+| Feature | Imperative | Wire with Params |
+|---------|-----------|------------------|
+| Execution | On button click | Automatic on param change |
+| Control | Full control | Automatic |
+| Debouncing | Not needed | Required |
+| Validation | Before call | Not possible |
+| User action | Explicit (button) | Implicit (typing) |
+
+## Best Practices
+
+1. **Validate input**: Check parameters before calling Apex
+2. **Handle empty input**: Decide behavior for empty search
+3. **Clear previous results**: Reset state on new search
+4. **Show feedback**: Indicate search in progress
+5. **Handle no results**: Show appropriate message
+
+## Advanced Example with Validation
+
+```javascript
+async handleSearch() {
+    // Validate input
+    if (!this.searchKey || this.searchKey.length < 2) {
+        this.error = { message: 'Please enter at least 2 characters' };
+        return;
+    }
+
+    this.isLoading = true;
+    try {
+        this.contacts = await findContacts({ searchKey: this.searchKey });
+        this.error = undefined;
+        
+        // Handle empty results
+        if (this.contacts.length === 0) {
+            this.error = { message: 'No contacts found' };
+        }
+    } catch (error) {
+        this.error = error;
+        this.contacts = undefined;
+    } finally {
+        this.isLoading = false;
+    }
+}
+```
+
+## UI Layout
+
+The component uses Lightning Layout for a clean search interface:
+
+```html
+<lightning-layout vertical-align="end">
+    <lightning-layout-item flexibility="grow">
+        <!-- Search input takes available space -->
+    </lightning-layout-item>
+    <lightning-layout-item class="slds-var-p-left_xx-small">
+        <!-- Button aligned to the right -->
+    </lightning-layout-item>
+</lightning-layout>
+```

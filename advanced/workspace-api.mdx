@@ -1,0 +1,526 @@
+---
+title: Workspace API
+description: Use the Workspace API to control tabs, subtabs, and console navigation in Salesforce console applications
+---
+
+The Workspace API allows Lightning Web Components to interact with the Salesforce console workspace, controlling tabs, subtabs, and navigation. This API is essential for building console applications that provide agent-friendly interfaces.
+
+<Warning>
+Workspace API methods only work in console applications. Always check if you're in a console context using `IsConsoleNavigation` before calling Workspace API methods.
+</Warning>
+
+## Checking Console Context
+
+Before using any Workspace API methods, verify you're in a console application:
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { IsConsoleNavigation } from 'lightning/platformWorkspaceApi';
+
+export default class MyComponent extends LightningElement {
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async myMethod() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+        // Safe to use Workspace API here
+    }
+}
+```
+
+## Opening Tabs
+
+Open new workspace tabs programmatically.
+
+**workspaceAPIOpenTab.js:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { IsConsoleNavigation, openTab } from 'lightning/platformWorkspaceApi';
+
+export default class WorkspaceAPIOpenTab extends LightningElement {
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async openTab() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+
+        // Open contact list in a new tab
+        await openTab({
+            pageReference: {
+                type: 'standard__objectPage',
+                attributes: {
+                    objectApiName: 'Contact',
+                    actionName: 'list'
+                }
+            },
+            focus: true,
+            label: 'Contacts List'
+        });
+    }
+}
+```
+
+### Opening Different Page Types
+
+```javascript
+// Open a record page
+await openTab({
+    pageReference: {
+        type: 'standard__recordPage',
+        attributes: {
+            recordId: '001xxxxxxxxxxxx',
+            actionName: 'view'
+        }
+    },
+    label: 'Account Record'
+});
+
+// Open a named page
+await openTab({
+    pageReference: {
+        type: 'standard__namedPage',
+        attributes: {
+            pageName: 'home'
+        }
+    },
+    label: 'Home'
+});
+
+// Open a Lightning component
+await openTab({
+    pageReference: {
+        type: 'standard__component',
+        attributes: {
+            componentName: 'c__MyComponent'
+        }
+    },
+    label: 'Custom Component'
+});
+```
+
+## Opening Subtabs
+
+Open subtabs within a parent tab.
+
+**workspaceAPIOpenSubtab.js:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import {
+    IsConsoleNavigation,
+    getFocusedTabInfo,
+    openSubtab
+} from 'lightning/platformWorkspaceApi';
+
+export default class WorkspaceAPIOpenSubtab extends LightningElement {
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async openSubtab() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+
+        // Get current parent tab
+        const { tabId } = await getFocusedTabInfo();
+
+        // Open a subtab
+        await openSubtab(tabId, {
+            pageReference: {
+                type: 'standard__recordPage',
+                attributes: {
+                    recordId: '003xxxxxxxxxxxx',
+                    actionName: 'view'
+                }
+            },
+            focus: true
+        });
+    }
+}
+```
+
+## Setting Tab Label
+
+Change the label of a tab dynamically.
+
+**workspaceAPISetTabLabel.js:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import {
+    IsConsoleNavigation,
+    getFocusedTabInfo,
+    setTabLabel
+} from 'lightning/platformWorkspaceApi';
+
+export default class WorkspaceAPISetTabLabel extends LightningElement {
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async setTabLabel() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+
+        // Change current tab label
+        const { tabId } = await getFocusedTabInfo();
+        await setTabLabel(tabId, 'Awesome Label');
+    }
+}
+```
+
+## Setting Tab Icon
+
+Update the icon displayed on a tab.
+
+**workspaceAPISetTabIcon.js:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import {
+    IsConsoleNavigation,
+    getFocusedTabInfo,
+    setTabIcon
+} from 'lightning/platformWorkspaceApi';
+
+export default class WorkspaceAPISetTabIcon extends LightningElement {
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async setTabIcon() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+
+        // Change current tab icon
+        const { tabId } = await getFocusedTabInfo();
+        await setTabIcon(tabId, 'utility:animal_and_nature', {
+            iconAlt: 'Animal and Nature'
+        });
+    }
+}
+```
+
+## Focusing Tabs
+
+Bring a specific tab into focus.
+
+**workspaceAPIFocusTab.js:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import {
+    focusTab,
+    IsConsoleNavigation,
+    getFocusedTabInfo,
+    getAllTabInfo
+} from 'lightning/platformWorkspaceApi';
+
+export default class WorkspaceAPIFocusTab extends LightningElement {
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async focusNextTab() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+
+        // Get current tab and figure out which tab is next
+        const { tabId } = await getFocusedTabInfo();
+        const allTabs = await getAllTabInfo();
+        const selectedTabIndex = allTabs.findIndex(
+            (possibleNextTab) => possibleNextTab.tabId === tabId
+        );
+        const nextTabId = allTabs[selectedTabIndex + 1].tabId;
+
+        // Focus on next tab
+        await focusTab(nextTabId);
+    }
+}
+```
+
+## Refreshing Tabs
+
+Refresh the content of a tab and optionally its subtabs.
+
+**workspaceAPIRefreshTab.js:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import {
+    IsConsoleNavigation,
+    getFocusedTabInfo,
+    refreshTab
+} from 'lightning/platformWorkspaceApi';
+
+export default class WorkspaceAPIRefreshTab extends LightningElement {
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async refreshTab() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+
+        // Refresh current tab and all subtabs
+        const { tabId } = await getFocusedTabInfo();
+        await refreshTab(tabId, {
+            includeAllSubtabs: true
+        });
+    }
+}
+```
+
+## Closing Tabs
+
+Close tabs programmatically.
+
+**workspaceAPICloseTab.js:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import {
+    closeTab,
+    IsConsoleNavigation,
+    getFocusedTabInfo
+} from 'lightning/platformWorkspaceApi';
+
+export default class WorkspaceAPICloseTab extends LightningElement {
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async closeTab() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+
+        // Close current tab
+        const { tabId } = await getFocusedTabInfo();
+        await closeTab(tabId);
+    }
+}
+```
+
+## Preventing Tab Close
+
+Disable the close button on a tab.
+
+**workspaceAPIDisableTabClose.js:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import {
+    IsConsoleNavigation,
+    getFocusedTabInfo,
+    disableTabClose
+} from 'lightning/platformWorkspaceApi';
+
+export default class WorkspaceAPIDisableTabClose extends LightningElement {
+    @wire(IsConsoleNavigation) isConsoleNavigation;
+
+    async disableTabClose() {
+        if (!this.isConsoleNavigation) {
+            return;
+        }
+
+        // Disable close for current tab
+        const { tabId } = await getFocusedTabInfo();
+        await disableTabClose(tabId, true);
+    }
+}
+```
+
+## Getting Tab Information
+
+### Get Focused Tab Info
+
+```javascript
+import { getFocusedTabInfo } from 'lightning/platformWorkspaceApi';
+
+const tabInfo = await getFocusedTabInfo();
+console.log('Current tab ID:', tabInfo.tabId);
+console.log('Is subtab:', tabInfo.isSubtab);
+console.log('Page reference:', tabInfo.pageReference);
+```
+
+### Get All Tab Info
+
+```javascript
+import { getAllTabInfo } from 'lightning/platformWorkspaceApi';
+
+const allTabs = await getAllTabInfo();
+allTabs.forEach(tab => {
+    console.log('Tab ID:', tab.tabId);
+    console.log('Tab label:', tab.title);
+    console.log('Is focused:', tab.focused);
+});
+```
+
+### Get All Subtab Info
+
+```javascript
+import { getAllTabInfo } from 'lightning/platformWorkspaceApi';
+
+const { tabId } = await getFocusedTabInfo();
+const subtabs = await getAllTabInfo({ tabId });
+```
+
+## Highlighting Tabs
+
+Highlight a tab to draw attention to it.
+
+```javascript
+import { setTabHighlighted } from 'lightning/platformWorkspaceApi';
+
+// Highlight tab
+await setTabHighlighted(tabId, true, {
+    pulse: true,
+    state: 'success'
+});
+```
+
+Available states:
+- `success` - Green highlight
+- `warning` - Orange highlight
+- `error` - Red highlight
+- `info` - Blue highlight (default)
+
+## Common Patterns
+
+### Open Related Record in Subtab
+
+```javascript
+async openRelatedRecord(recordId) {
+    if (!this.isConsoleNavigation) {
+        return;
+    }
+    
+    const { tabId } = await getFocusedTabInfo();
+    await openSubtab(tabId, {
+        pageReference: {
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: recordId,
+                actionName: 'view'
+            }
+        },
+        focus: true
+    });
+}
+```
+
+### Update Tab Label with Record Name
+
+```javascript
+import { getRecord } from 'lightning/uiRecordApi';
+import NAME_FIELD from '@salesforce/schema/Account.Name';
+
+@wire(getRecord, { recordId: '$recordId', fields: [NAME_FIELD] })
+wiredRecord({ data }) {
+    if (data && this.isConsoleNavigation) {
+        const name = data.fields.Name.value;
+        getFocusedTabInfo().then(({ tabId }) => {
+            setTabLabel(tabId, name);
+        });
+    }
+}
+```
+
+### Close All Subtabs
+
+```javascript
+async closeAllSubtabs() {
+    if (!this.isConsoleNavigation) {
+        return;
+    }
+    
+    const { tabId } = await getFocusedTabInfo();
+    const subtabs = await getAllTabInfo({ tabId });
+    
+    for (const subtab of subtabs) {
+        await closeTab(subtab.tabId);
+    }
+}
+```
+
+## Best Practices
+
+### Always Check Console Context
+
+Never call Workspace API methods without checking `IsConsoleNavigation` first:
+
+```javascript
+@wire(IsConsoleNavigation) isConsoleNavigation;
+
+async myMethod() {
+    if (!this.isConsoleNavigation) {
+        return;
+    }
+    // Workspace API calls
+}
+```
+
+### Handle Async Operations
+
+Workspace API methods return promises. Use async/await or `.then()`:
+
+```javascript
+// Good - async/await
+async openNewTab() {
+    const result = await openTab({ /* config */ });
+    console.log('Tab opened:', result.tabId);
+}
+
+// Good - promise chain
+openNewTab() {
+    openTab({ /* config */ })
+        .then(result => {
+            console.log('Tab opened:', result.tabId);
+        });
+}
+```
+
+### Cache Tab IDs When Needed
+
+If you need to reference a tab multiple times, cache the ID:
+
+```javascript
+connectedCallback() {
+    if (this.isConsoleNavigation) {
+        getFocusedTabInfo().then(({ tabId }) => {
+            this.currentTabId = tabId;
+        });
+    }
+}
+```
+
+### Provide User Feedback
+
+Let users know when tab operations complete:
+
+```javascript
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+async openNewTab() {
+    try {
+        await openTab({ /* config */ });
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Success',
+                message: 'Tab opened',
+                variant: 'success'
+            })
+        );
+    } catch (error) {
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Error',
+                message: error.message,
+                variant: 'error'
+            })
+        );
+    }
+}
+```
+
+## Related Resources
+
+- [Workspace API Developer Guide](https://developer.salesforce.com/docs/component-library/documentation/en/lwc/lwc.use_workspace_api)
+- [Console Integration and Workspace API](https://developer.salesforce.com/docs/atlas.en-us.api_console.meta/api_console/)

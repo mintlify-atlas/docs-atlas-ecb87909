@@ -1,0 +1,159 @@
+---
+title: GraphQL Variables
+description: Run a GraphQL query with a variable using @wire
+---
+
+## Overview
+
+The `graphqlVariables` component demonstrates how to use variables in GraphQL queries with the `@wire` decorator. It implements a search feature with reactive variables that trigger query re-execution.
+
+## Source
+
+`force-app/main/default/lwc/graphqlVariables`
+
+## Key Features
+
+- GraphQL query with variables
+- Reactive variable binding using `$variables`
+- Getter function for reactive updates
+- Debounced input handling
+- Default variable values
+
+## GraphQL Query with Variables
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { gql, graphql } from 'lightning/graphql';
+
+export default class GraphqlVariables extends LightningElement {
+    searchKey = '';
+
+    @wire(graphql, {
+        query: gql`
+            query searchContacts($searchKey: String!, $limit: Int = 5) {
+                uiapi {
+                    query {
+                        Contact(
+                            where: { Name: { like: $searchKey } }
+                            first: $limit
+                            orderBy: { Name: { order: ASC } }
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Name {
+                                        value
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `,
+        variables: '$variables'
+    })
+    contacts;
+}
+```
+
+## Variable Declaration
+
+Declare variables in the query signature with types:
+
+```graphql
+query searchContacts($searchKey: String!, $limit: Int = 5)
+```
+
+- **`$searchKey: String!`**: Required string variable
+- **`$limit: Int = 5`**: Optional integer with default value
+
+## Reactive Variables
+
+Use a getter function to make variables reactive. LWC will re-run this function and re-evaluate the GraphQL query when referenced component properties change:
+
+```javascript
+get variables() {
+    return {
+        searchKey: this.searchKey === '' ? '%' : `%${this.searchKey}%`
+    };
+}
+```
+
+### Why Use a Getter?
+
+GraphQL variable values are nested within an object. A getter function is required to ensure the variables are reactive and the query re-executes when component properties change.
+
+## Wire Adapter Configuration
+
+Bind the variables using the `$variables` syntax:
+
+```javascript
+@wire(graphql, {
+    query: gql`...`,
+    variables: '$variables'
+})
+contacts;
+```
+
+The `$` prefix tells the wire adapter to treat `variables` as a reactive property.
+
+## Debouncing Input
+
+Avoid excessive query executions by debouncing user input:
+
+```javascript
+const DELAY = 300;
+
+handleKeyChange(event) {
+    window.clearTimeout(this.delayTimeout);
+    const searchKey = event.target.value;
+    this.delayTimeout = setTimeout(() => {
+        this.searchKey = searchKey;
+    }, DELAY);
+}
+```
+
+This waits 300ms after the user stops typing before updating `searchKey`, which triggers the query.
+
+## Using Variables in Queries
+
+Reference variables with the `$` prefix:
+
+```graphql
+Contact(
+    where: { Name: { like: $searchKey } }
+    first: $limit
+)
+```
+
+## Accessing Data
+
+Access the wire adapter result directly in the template:
+
+```html
+<template lwc:if={contacts.data}>
+    <template
+        for:each={contacts.data.uiapi.query.Contact.edges}
+        for:item="contact"
+    >
+        <p key={contact.node.Id}>{contact.node.Name.value}</p>
+    </template>
+</template>
+```
+
+## Pattern: Wildcard Search
+
+Wrap the search term with `%` for partial matching:
+
+```javascript
+searchKey: this.searchKey === '' ? '%' : `%${this.searchKey}%`
+```
+
+This allows searching for contacts whose names contain the search term.
+
+## See Also
+
+- [GraphQL Contacts](/components/graphql/basic-query)
+- [GraphQL Pagination](/components/graphql/pagination)
+- [GraphQL Refresh](/components/graphql/refresh)

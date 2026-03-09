@@ -1,0 +1,158 @@
+---
+title: lightning-record-edit-form
+description: Create or edit a record with custom layout control using Lightning Data Service
+---
+
+`lightning-record-edit-form` provides full control over form layout while leveraging Lightning Data Service for data management. Use it when you need custom layouts, custom buttons, or custom validation logic.
+
+## Usage
+
+### Static Field Definition
+
+Import field schema references and expose them to the template:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+import ACCOUNT_FIELD from '@salesforce/schema/Contact.AccountId';
+import NAME_FIELD from '@salesforce/schema/Contact.Name';
+import TITLE_FIELD from '@salesforce/schema/Contact.Title';
+import PHONE_FIELD from '@salesforce/schema/Contact.Phone';
+import EMAIL_FIELD from '@salesforce/schema/Contact.Email';
+
+export default class RecordEditFormStaticContact extends LightningElement {
+    accountField = ACCOUNT_FIELD;
+    nameField = NAME_FIELD;
+    titleField = TITLE_FIELD;
+    phoneField = PHONE_FIELD;
+    emailField = EMAIL_FIELD;
+
+    @api recordId;
+    @api objectApiName;
+}
+```
+
+```html
+<template>
+    <lightning-record-edit-form
+        object-api-name={objectApiName}
+        record-id={recordId}
+    >
+        <lightning-messages></lightning-messages>
+        <lightning-input-field field-name={accountField}></lightning-input-field>
+        <lightning-input-field field-name={nameField}></lightning-input-field>
+        <lightning-input-field field-name={titleField}></lightning-input-field>
+        <lightning-input-field field-name={phoneField}></lightning-input-field>
+        <lightning-input-field field-name={emailField}></lightning-input-field>
+        <div class="slds-var-m-top_medium">
+            <lightning-button
+                variant="brand"
+                type="submit"
+                name="save"
+                label="Save"
+            ></lightning-button>
+        </div>
+    </lightning-record-edit-form>
+</template>
+```
+
+### Dynamic Field Definition
+
+Specify field names directly as strings:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class RecordEditFormDynamicContact extends LightningElement {
+    @api recordId;
+    @api objectApiName;
+}
+```
+
+```html
+<template>
+    <lightning-record-edit-form
+        object-api-name={objectApiName}
+        record-id={recordId}
+    >
+        <lightning-messages></lightning-messages>
+        <lightning-input-field field-name="AccountId"></lightning-input-field>
+        <lightning-input-field field-name="Name"></lightning-input-field>
+        <lightning-input-field field-name="Title"></lightning-input-field>
+        <lightning-input-field field-name="Phone"></lightning-input-field>
+        <lightning-input-field field-name="Email"></lightning-input-field>
+        <div class="slds-var-m-top_medium">
+            <lightning-button
+                variant="brand"
+                type="submit"
+                name="save"
+                label="Save"
+            ></lightning-button>
+        </div>
+    </lightning-record-edit-form>
+</template>
+```
+
+## Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `object-api-name` | String | Yes | API name of the object (e.g., 'Contact', 'Account') |
+| `record-id` | String | No | ID of the record to edit. Omit to create a new record |
+| `record-type-id` | String | No | Record type ID for record creation |
+| `density` | String | No | Display density: 'compact', 'comfy', or 'auto' (default) |
+
+## Child Components
+
+### lightning-input-field
+
+Renders an input field with automatic type detection and validation:
+
+```html
+<lightning-input-field
+    field-name="Name"
+    required
+    value={nameValue}
+    onchange={handleNameChange}
+></lightning-input-field>
+```
+
+### lightning-messages
+
+Displays form-level error messages:
+
+```html
+<lightning-messages></lightning-messages>
+```
+
+## Events
+
+| Event | Description | Detail |
+|-------|-------------|--------|
+| `submit` | Fired when the form is submitted | `{ fields }` |
+| `success` | Fired when the record is saved successfully | `{ id, fields }` |
+| `error` | Fired when an error occurs | `{ detail }` |
+| `load` | Fired when the record data is loaded | `{ records }` |
+| `cancel` | Fired when the user cancels the form | None |
+
+## Features
+
+- **Custom Layout**: Full control over field placement and grouping
+- **Custom Buttons**: Add custom submit, cancel, or other action buttons
+- **Field-level Control**: Individual field attributes and event handlers
+- **Validation**: Built-in validation with custom error messages
+- **Lightning Data Service**: Automatic caching and data refresh
+
+<Warning>
+  Always include `lightning-messages` to display form-level errors. Without it, users won't see validation errors that aren't tied to specific fields.
+</Warning>
+
+<Warning>
+  When creating a new record, omit the `record-id` attribute. Setting it to `null` or `undefined` may cause unexpected behavior.
+</Warning>
+
+## Related Components
+
+- [lightning-record-form](/components/lds/record-form) - For automatic layout generation
+- [lightning-record-view-form](/components/lds/record-view-form) - For custom read-only layouts
+- [createRecord](/components/lds/create-record) - For programmatic record creation

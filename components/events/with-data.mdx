@@ -1,0 +1,180 @@
+---
+title: Events with Data
+description: Passing data from child to parent using the detail property
+---
+
+Events with data demonstrate how to pass information from a child component to a parent component using the `detail` property of CustomEvent.
+
+## Overview
+
+This example shows a contact list where clicking a contact item sends the contact ID from the child component to the parent, which then displays the full contact details.
+
+## Child Component: c-contact-list-item
+
+The contact list item component dispatches an event containing the contact ID.
+
+### JavaScript (contactListItem.js)
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class ContactListItem extends LightningElement {
+    @api contact;
+
+    handleClick(event) {
+        // 1. Prevent default behavior of anchor tag click
+        event.preventDefault();
+        
+        // 2. Create custom event with data in the detail property
+        const selectEvent = new CustomEvent('select', {
+            detail: this.contact.Id
+        });
+        
+        // 3. Fire the custom event
+        this.dispatchEvent(selectEvent);
+    }
+}
+```
+
+**Key Points:**
+- The `detail` property carries data from child to parent
+- `detail` can contain any serializable data (primitives, objects, arrays)
+- Receives contact data via `@api contact` property
+
+### Template (contactListItem.html)
+
+```html
+<template>
+    <a href="#" onclick={handleClick}>
+        <lightning-layout vertical-align="center">
+            <lightning-layout-item>
+                <img src={contact.Picture__c} alt="Profile photo" />
+            </lightning-layout-item>
+            <lightning-layout-item padding="around-small">
+                <p>{contact.Name}</p>
+            </lightning-layout-item>
+        </lightning-layout>
+    </a>
+</template>
+```
+
+## Parent Component: c-event-with-data
+
+The parent component handles the event and extracts data from `event.detail`.
+
+### JavaScript (eventWithData.js)
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class EventWithData extends LightningElement {
+    selectedContact;
+
+    @wire(getContactList) contacts;
+
+    handleSelect(event) {
+        // Extract contact ID from event.detail
+        const contactId = event.detail;
+        
+        // Find and store the selected contact
+        this.selectedContact = this.contacts.data.find(
+            (contact) => contact.Id === contactId
+        );
+    }
+}
+```
+
+**Key Points:**
+- Access event data via `event.detail`
+- The detail value is exactly what the child component provided
+- Use the data to update parent component state
+
+### Template (eventWithData.html)
+
+```html
+<template>
+    <lightning-card title="EventWithData" icon-name="standard:logging">
+        <template lwc:if={contacts.data}>
+            <lightning-layout class="slds-var-m-around_medium">
+                <lightning-layout-item>
+                    <!-- Each element must have a listener for non-bubbling events -->
+                    <template for:each={contacts.data} for:item="contact">
+                        <fieldset key={contact.Id} class="slds-var-p-horizontal_x-small">
+                            <legend>c-contact-list-item</legend>
+                            <c-contact-list-item
+                                class="slds-show slds-is-relative"
+                                contact={contact}
+                                onselect={handleSelect}
+                            ></c-contact-list-item>
+                        </fieldset>
+                    </template>
+                </lightning-layout-item>
+                <lightning-layout-item class="slds-var-m-left_medium">
+                    <template lwc:if={selectedContact}>
+                        <img src={selectedContact.Picture__c} alt="Profile photo" />
+                        <p>{selectedContact.Name}</p>
+                        <p>{selectedContact.Title}</p>
+                        <p>
+                            <lightning-formatted-phone
+                                value={selectedContact.Phone}
+                            ></lightning-formatted-phone>
+                        </p>
+                        <p>
+                            <lightning-formatted-email
+                                value={selectedContact.Email}
+                            ></lightning-formatted-email>
+                        </p>
+                    </template>
+                </lightning-layout-item>
+            </lightning-layout>
+        </template>
+        <template lwc:elseif={contacts.error}>
+            <c-error-panel errors={contacts.error}></c-error-panel>
+        </template>
+    </lightning-card>
+</template>
+```
+
+**Key Points:**
+- Non-bubbling events require listeners on each child component
+- Event handler `onselect` binds to the 'select' event
+- Parent displays selected contact details when a contact is chosen
+
+## CustomEvent Options
+
+### detail
+Carries data from child to parent. Can be any type:
+
+```javascript
+// String
+new CustomEvent('select', { detail: 'some-id' })
+
+// Number
+new CustomEvent('select', { detail: 42 })
+
+// Object
+new CustomEvent('select', { detail: { id: '123', name: 'John' } })
+
+// Array
+new CustomEvent('select', { detail: [1, 2, 3] })
+```
+
+### Default Behavior
+By default, custom events:
+- Do NOT bubble up the DOM tree (`bubbles: false`)
+- Do NOT cross shadow DOM boundaries (`composed: false`)
+
+## Event Flow
+
+1. User clicks a contact item
+2. Child component creates `CustomEvent` with contact ID in `detail`
+3. Child dispatches the event
+4. Parent's `onselect` handler receives the event
+5. Parent extracts `event.detail` to get the contact ID
+6. Parent finds and displays the full contact information
+
+## Source Files
+
+- Child: `force-app/main/default/lwc/contactListItem/`
+- Parent: `force-app/main/default/lwc/eventWithData/`

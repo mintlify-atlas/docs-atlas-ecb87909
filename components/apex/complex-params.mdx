@@ -1,0 +1,408 @@
+---
+title: Imperative Apex with Complex Parameters
+description: Call an Apex method with complex parameters including custom types and nested objects
+---
+
+This component demonstrates how to call an Apex method imperatively with complex parameters, including custom Apex wrapper classes with nested data structures.
+
+## Implementation
+
+<CodeGroup>
+
+```javascript apexImperativeMethodWithComplexParams.js
+import { LightningElement } from 'lwc';
+import checkApexTypes from '@salesforce/apex/ApexTypesController.checkApexTypes';
+
+export default class ApexImperativeMethodWithComplexParams extends LightningElement {
+    listItemValue = 4;
+    numberValue = 50;
+    stringValue = 'Some string';
+
+    message;
+    error;
+
+    handleStringChange(event) {
+        this.stringValue = event.target.value;
+    }
+
+    handleNumberChange(event) {
+        this.numberValue = event.target.value;
+    }
+
+    handleListItemChange(event) {
+        this.listItemValue = event.target.value;
+    }
+
+    async handleButtonClick() {
+        // Creating the object that represents the shape
+        // of the Apex wrapper class.
+        let parameterObject = {
+            someString: this.stringValue,
+            someInteger: this.numberValue,
+            someList: []
+        };
+        // Populating a list
+        for (let i = 0; i < this.listItemValue; i++) {
+            parameterObject.someList.push(this.stringValue);
+        }
+
+        // Calling the imperative Apex method with the JSON
+        // object as parameter.
+        try {
+            this.message = await checkApexTypes({ wrapper: parameterObject });
+            this.error = undefined;
+        } catch (error) {
+            this.message = undefined;
+            this.error = error;
+        }
+    }
+}
+```
+
+```html apexImperativeMethodWithComplexParams.html
+<template>
+    <lightning-card
+        title="ApexImperativeMethodWithComplexParams"
+        icon-name="custom:custom63"
+    >
+        <div class="slds-var-m-around_medium">
+            <lightning-input
+                label="String"
+                type="string"
+                value={stringValue}
+                class="string-input"
+                onchange={handleStringChange}
+            ></lightning-input>
+            <lightning-input
+                label="Number"
+                type="number"
+                min="0"
+                max="100"
+                value={numberValue}
+                class="number-input"
+                onchange={handleNumberChange}
+            ></lightning-input>
+            <lightning-input
+                label="List items"
+                type="number"
+                min="0"
+                max="10"
+                value={listItemValue}
+                class="list-item-input"
+                onchange={handleListItemChange}
+            ></lightning-input>
+            <br />
+            <lightning-button
+                label="Call Apex"
+                variant="brand"
+                onclick={handleButtonClick}
+            ></lightning-button>
+            <template lwc:if={message}>
+                <p class="slds-var-m-top_medium">{message}</p>
+            </template>
+            <template lwc:elseif={error}>
+                <c-error-panel errors={error}></c-error-panel>
+            </template>
+        </div>
+        <c-view-source
+            source="lwc/apexImperativeMethodWithComplexParams"
+            slot="footer"
+        >
+            Call an Apex method with complex parameters imperatively. These
+            parameters can be custom Apex types, as well as sObjects.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+```apex ApexTypesController.cls
+public with sharing class ApexTypesController {
+    @AuraEnabled(cacheable=true)
+    public static String checkApexTypes(CustomWrapper wrapper) {
+        // Using System.debug() isn't good practice for production applications.
+        // It's used here to showcase how the received data looks like in Apex.
+        System.debug(wrapper);
+        // The values are based on the data that is defined in the
+        // apexImperativeMethodWithComplexParams Lightning web component.
+        String response =
+            'You entered "' +
+            wrapper.someString +
+            '" as String, and "' +
+            wrapper.someInteger +
+            '" as Integer value. The list contained ' +
+            wrapper.someList.size() +
+            ' items.';
+        return response;
+    }
+}
+```
+
+```apex CustomWrapper.cls
+/**
+ * Wrapper class used to demonstrate how we can pass complex paramters from LWC.
+ */
+public with sharing class CustomWrapper {
+    @AuraEnabled
+    public Integer someInteger { get; set; }
+    @AuraEnabled
+    public String someString { get; set; }
+    @AuraEnabled
+    public List<String> someList { get; set; }
+}
+```
+
+</CodeGroup>
+
+## Key Features
+
+### Complex Object Construction
+
+Create JavaScript objects that match the structure of Apex wrapper classes:
+
+```javascript
+let parameterObject = {
+    someString: this.stringValue,
+    someInteger: this.numberValue,
+    someList: []
+};
+```
+
+### Property Name Mapping
+
+JavaScript object properties must match Apex class property names:
+
+```javascript
+// JavaScript
+{
+    someString: 'value',
+    someInteger: 42,
+    someList: ['item1', 'item2']
+}
+```
+
+```apex
+// Apex
+public class CustomWrapper {
+    @AuraEnabled
+    public String someString { get; set; }
+    @AuraEnabled
+    public Integer someInteger { get; set; }
+    @AuraEnabled
+    public List<String> someList { get; set; }
+}
+```
+
+### Dynamic List Population
+
+Build arrays dynamically before sending to Apex:
+
+```javascript
+for (let i = 0; i < this.listItemValue; i++) {
+    parameterObject.someList.push(this.stringValue);
+}
+```
+
+### Parameter Passing
+
+Pass the complex object as a named parameter:
+
+```javascript
+this.message = await checkApexTypes({ wrapper: parameterObject });
+//                                    ^
+//                                    Parameter name matches Apex method
+```
+
+## Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `stringValue` | String | String value to send to Apex |
+| `numberValue` | Number | Integer value to send to Apex |
+| `listItemValue` | Number | Number of items to include in the list |
+| `message` | String | Response message from Apex |
+| `error` | Object | Error object if the call fails |
+
+## Parameters
+
+### JavaScript Object Structure
+
+```javascript
+{
+    someString: String,
+    someInteger: Number,
+    someList: Array<String>
+}
+```
+
+### Apex Method Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `wrapper` | CustomWrapper | Custom wrapper object containing complex data |
+
+## Apex Wrapper Class Requirements
+
+1. **AuraEnabled annotation**: All properties must be annotated
+2. **Public access**: Properties must be public
+3. **Get/Set methods**: Use `{ get; set; }` syntax
+4. **Sharing rules**: Use `with sharing` for security
+
+```apex
+public with sharing class CustomWrapper {
+    @AuraEnabled
+    public String someString { get; set; }
+    @AuraEnabled
+    public Integer someInteger { get; set; }
+    @AuraEnabled
+    public List<String> someList { get; set; }
+}
+```
+
+## Type Mapping
+
+### Primitive Types
+
+| JavaScript | Apex |
+|-----------|------|
+| String | String |
+| Number | Integer, Decimal, Double |
+| Boolean | Boolean |
+| null | null |
+
+### Complex Types
+
+| JavaScript | Apex |
+|-----------|------|
+| Object | Custom Apex class, sObject |
+| Array | List |
+| Date | Date, DateTime |
+
+## Advanced Examples
+
+### Nested Objects
+
+```javascript
+// JavaScript
+let complexObject = {
+    customer: {
+        name: 'John Doe',
+        email: 'john@example.com'
+    },
+    items: [
+        { name: 'Item 1', price: 100 },
+        { name: 'Item 2', price: 200 }
+    ]
+};
+
+await processOrder({ order: complexObject });
+```
+
+```apex
+// Apex
+public class OrderWrapper {
+    @AuraEnabled public CustomerWrapper customer { get; set; }
+    @AuraEnabled public List<ItemWrapper> items { get; set; }
+}
+
+public class CustomerWrapper {
+    @AuraEnabled public String name { get; set; }
+    @AuraEnabled public String email { get; set; }
+}
+
+public class ItemWrapper {
+    @AuraEnabled public String name { get; set; }
+    @AuraEnabled public Decimal price { get; set; }
+}
+```
+
+### sObject Parameters
+
+```javascript
+// JavaScript
+let contact = {
+    FirstName: 'John',
+    LastName: 'Doe',
+    Email: 'john@example.com'
+};
+
+await createContact({ contactRecord: contact });
+```
+
+```apex
+// Apex
+@AuraEnabled
+public static Id createContact(Contact contactRecord) {
+    insert contactRecord;
+    return contactRecord.Id;
+}
+```
+
+### List of sObjects
+
+```javascript
+// JavaScript
+let contacts = [
+    { FirstName: 'John', LastName: 'Doe' },
+    { FirstName: 'Jane', LastName: 'Smith' }
+];
+
+await createMultipleContacts({ contactList: contacts });
+```
+
+```apex
+// Apex
+@AuraEnabled
+public static List<Id> createMultipleContacts(List<Contact> contactList) {
+    insert contactList;
+    List<Id> ids = new List<Id>();
+    for (Contact c : contactList) {
+        ids.add(c.Id);
+    }
+    return ids;
+}
+```
+
+## Error Handling
+
+Handle errors for complex parameter validation:
+
+```javascript
+try {
+    this.message = await checkApexTypes({ wrapper: parameterObject });
+    this.error = undefined;
+} catch (error) {
+    this.message = undefined;
+    this.error = error;
+    // Error could be:
+    // - Invalid parameter structure
+    // - Type mismatch
+    // - Apex execution error
+}
+```
+
+## When to Use
+
+Use complex parameters when:
+- Sending multiple related values
+- Working with nested data structures
+- Passing sObjects or custom types
+- Building objects dynamically
+- Sending data from forms with multiple fields
+
+## Best Practices
+
+1. **Match property names exactly**: JavaScript object properties must match Apex class properties (case-sensitive)
+2. **Use wrapper classes**: Create dedicated Apex classes for complex parameters
+3. **Validate before sending**: Check data integrity in JavaScript
+4. **Document structure**: Clearly document the expected object shape
+5. **Handle type conversion**: Be aware of JavaScript to Apex type mapping
+6. **Use meaningful names**: Name properties clearly for maintainability
+7. **Test edge cases**: Test with null values, empty arrays, etc.
+
+## Common Pitfalls
+
+1. **Case sensitivity**: `someString` ≠ `somestring`
+2. **Type mismatches**: Sending String when Apex expects Integer
+3. **Missing @AuraEnabled**: Apex properties must be annotated
+4. **Null handling**: JavaScript undefined becomes null in Apex
+5. **Date formats**: Use ISO format for dates

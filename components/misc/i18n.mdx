@@ -1,0 +1,178 @@
+---
+title: Internationalization (i18n)
+description: Format dates and currencies for different locales
+---
+
+## Overview
+
+The `miscI18n` component demonstrates how to use Salesforce i18n modules and the JavaScript Intl API to format dates and currencies according to different locales.
+
+## Source Component
+
+- **miscI18n** - Formats dates and currencies using locale settings
+
+## Key Features
+
+- Access user's locale and currency settings
+- JavaScript Intl API for formatting
+- Date formatting by locale
+- Currency formatting with symbols
+- No custom labels required
+
+## Implementation
+
+### Accessing User Settings
+
+Import user locale and currency from Salesforce:
+
+```javascript
+import { LightningElement } from 'lwc';
+import USER_LOCALE from '@salesforce/i18n/locale';
+import USER_CURRENCY from '@salesforce/i18n/currency';
+
+export default class I18n extends LightningElement {
+    userLocale = USER_LOCALE;
+    userCurrency = USER_CURRENCY;
+}
+```
+
+## Date Formatting
+
+Use `Intl.DateTimeFormat` to format dates:
+
+```javascript
+get dateUserLocale() {
+    const date = new Date();
+    return new Intl.DateTimeFormat(USER_LOCALE).format(date);
+}
+
+get dateJapanLocale() {
+    const date = new Date();
+    return new Intl.DateTimeFormat('ja-JP').format(date);
+}
+```
+
+### Date Format Examples
+
+- **en-US**: 3/9/2026
+- **ja-JP**: 2026/3/9
+- **en-GB**: 09/03/2026
+- **de-DE**: 9.3.2026
+
+<Note>
+The `Intl.DateTimeFormat` API automatically adapts to the locale's standard date format. You can also customize the format using options like `{ year: 'numeric', month: 'long', day: 'numeric' }`.
+</Note>
+
+## Currency Formatting
+
+Use `Intl.NumberFormat` with currency options:
+
+```javascript
+get currencyUserLocale() {
+    return new Intl.NumberFormat(USER_LOCALE, {
+        style: 'currency',
+        currency: USER_CURRENCY,
+        currencyDisplay: 'symbol'
+    }).format(100);
+}
+
+get currencyJapanLocale() {
+    return new Intl.NumberFormat('ja-JP', {
+        style: 'currency',
+        currency: 'JPY',
+        currencyDisplay: 'symbol'
+    }).format(100);
+}
+```
+
+### Currency Format Examples
+
+- **en-US (USD)**: $100.00
+- **ja-JP (JPY)**: ¥100
+- **en-GB (GBP)**: £100.00
+- **de-DE (EUR)**: 100,00 €
+
+## Available Salesforce i18n Imports
+
+Salesforce provides several i18n modules:
+
+```javascript
+import LOCALE from '@salesforce/i18n/locale';           // User's locale
+import CURRENCY from '@salesforce/i18n/currency';       // User's currency
+import TIMEZONE from '@salesforce/i18n/timeZone';       // User's timezone
+import FIRST_DAY from '@salesforce/i18n/firstDayOfWeek'; // First day of week
+import LANG from '@salesforce/i18n/lang';               // User's language
+```
+
+## Advanced Formatting Options
+
+### Custom Date Formats
+
+```javascript
+const options = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long'
+};
+const formatted = new Intl.DateTimeFormat(USER_LOCALE, options).format(date);
+// Output (en-US): "Monday, March 9, 2026"
+```
+
+### Number Formatting
+
+```javascript
+// Decimal formatting
+const decimal = new Intl.NumberFormat(USER_LOCALE, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+}).format(1234.5);
+// Output (en-US): "1,234.50"
+
+// Percentage formatting
+const percent = new Intl.NumberFormat(USER_LOCALE, {
+    style: 'percent'
+}).format(0.75);
+// Output (en-US): "75%"
+```
+
+### Currency Display Options
+
+```javascript
+// Symbol (default)
+currencyDisplay: 'symbol'  // $100.00
+
+// Currency code
+currencyDisplay: 'code'    // USD 100.00
+
+// Currency name
+currencyDisplay: 'name'    // 100.00 US dollars
+```
+
+## Template Usage
+
+Display formatted values in your template:
+
+```html
+<template>
+    <p>User's locale: <b>{userLocale}</b></p>
+    <p>Today's date: <b>{dateUserLocale}</b></p>
+    <p>Currency: <b>{currencyUserLocale}</b></p>
+</template>
+```
+
+## Best Practices
+
+- Use Salesforce i18n modules to get user settings
+- Leverage the Intl API for consistent formatting
+- Test with multiple locales during development
+- Avoid hardcoding date and currency formats
+- Use getters for formatted values to ensure reactivity
+
+<Note>
+The Intl API is part of the JavaScript standard and works in all modern browsers. It provides more flexibility than custom formatting logic and automatically handles locale-specific rules.
+</Note>
+
+## Source Files
+
+- `force-app/main/default/lwc/miscI18n/`

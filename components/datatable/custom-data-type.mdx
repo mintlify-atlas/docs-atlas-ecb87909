@@ -1,0 +1,155 @@
+---
+title: Custom Data Type
+description: Create custom column types in lightning-datatable with custom renderers
+---
+
+Extend `lightning-datatable` with custom data types to render specialized content in table cells.
+
+## Overview
+
+This example demonstrates how to:
+- Create a custom datatable by extending `LightningDatatable`
+- Define custom column types with custom templates
+- Register type attributes for data binding
+- Display custom content (contact pictures) in table cells
+
+## Component Structure
+
+### Custom Datatable Component
+
+Create a custom datatable class that extends `LightningDatatable`:
+
+```javascript title="customDataTypes.js"
+import LightningDatatable from 'lightning/datatable';
+import customPicture from './customPicture.html';
+
+export default class CustomDataTypes extends LightningDatatable {
+    static customTypes = {
+        customPictureType: {
+            template: customPicture,
+            standardCellLayout: true,
+            typeAttributes: ['pictureUrl']
+        }
+    };
+}
+```
+
+### Custom Type Template
+
+Define the HTML template for rendering the custom type:
+
+```html title="customPicture.html"
+<template>
+    <img
+        src={typeAttributes.pictureUrl}
+        class="slds-avatar slds-avatar_circle slds-avatar_large"
+        alt="Profile photo"
+    />
+</template>
+```
+
+## Usage
+
+### Column Definitions
+
+Define columns with the custom data type:
+
+```javascript title="datatableCustomDataType.js" {11-17}
+import { LightningElement, wire } from 'lwc';
+import getContacts from '@salesforce/apex/ContactController.getContactList';
+
+const COLS = [
+    { label: 'First Name', fieldName: 'FirstName' },
+    { label: 'Last Name', fieldName: 'LastName' },
+    { label: 'Title', fieldName: 'Title' },
+    { label: 'Phone', fieldName: 'Phone', type: 'phone' },
+    { label: 'Email', fieldName: 'Email', type: 'email' },
+    {
+        label: 'Contact Picture',
+        type: 'customPictureType',
+        typeAttributes: {
+            pictureUrl: { fieldName: 'Picture__c' }
+        },
+        cellAttributes: { alignment: 'center' }
+    }
+];
+
+export default class DatatableCustomDataType extends LightningElement {
+    columns = COLS;
+
+    @wire(getContacts)
+    contacts;
+}
+```
+
+### Template
+
+Use your custom datatable component instead of `lightning-datatable`:
+
+```html title="datatableCustomDataType.html" {8}
+<template>
+    <lightning-card title="Datatable Custom Data Type">
+        <div class="slds-var-m-around_medium">
+            <template lwc:if={contacts.data}>
+                <c-custom-data-types
+                    key-field="Id"
+                    data={contacts.data}
+                    columns={columns}
+                    hide-checkbox-column="true">
+                </c-custom-data-types>
+            </template>
+            <template lwc:elseif={contacts.error}>
+                <c-error-panel errors={contacts.error}></c-error-panel>
+            </template>
+        </div>
+    </lightning-card>
+</template>
+```
+
+## Custom Type Configuration
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `template` | HTMLTemplateElement | The HTML template to render for this type |
+| `standardCellLayout` | Boolean | Whether to use standard cell padding and layout |
+| `typeAttributes` | String[] | Array of attribute names available in the template |
+
+### Type Attributes
+
+Type attributes allow passing data from the column definition to the custom template:
+
+```javascript
+// Column definition
+{
+    type: 'customPictureType',
+    typeAttributes: {
+        pictureUrl: { fieldName: 'Picture__c' }
+    }
+}
+```
+
+Access in template:
+
+```html
+<img src={typeAttributes.pictureUrl} />
+```
+
+## Use Cases
+
+- **Custom Visualizations**: Display charts, graphs, or images in cells
+- **Rich Content**: Render formatted text, badges, or icons
+- **Interactive Elements**: Add buttons or links with custom behaviors
+- **Domain-Specific Types**: Create types for ratings, progress bars, or status indicators
+
+## Related Components
+
+- [Inline Edit with Apex](/components/datatable/inline-edit-apex)
+- [Inline Edit with UI API](/components/datatable/inline-edit-ui-api)
+
+## Source
+
+- `datatableCustomDataType.js:4-18` - Column definitions with custom type
+- `customDataTypes.js:1-12` - Custom datatable class
+- `customPicture.html:1-7` - Custom type template

@@ -1,0 +1,190 @@
+---
+title: D3.js Integration
+description: Integrate D3.js data visualization library into Lightning Web Components
+---
+
+The `libsD3` component demonstrates how to integrate the D3.js library into a Lightning Web Component to create interactive data visualizations.
+
+## Source Code
+
+- Component: `force-app/main/default/lwc/libsD3/`
+- Static Resource: `force-app/main/default/staticresources/d3/` (contains `d3.v5.min.js` and `style.css`)
+
+## Key Features
+
+- Loads both D3.js script and CSS using `platformResourceLoader`
+- Creates an interactive force-directed graph
+- Uses manual DOM manipulation with `lwc:dom="manual"`
+- Implements drag-and-drop interactions
+- Shows toast notifications for errors
+
+## Loading D3.js Resources
+
+The component loads both JavaScript and CSS files from the static resource:
+
+```javascript
+import D3 from '@salesforce/resourceUrl/d3';
+import { loadScript, loadStyle } from 'lightning/platformResourceLoader';
+
+await Promise.all([
+    loadScript(this, D3 + '/d3.v5.min.js'),
+    loadStyle(this, D3 + '/style.css')
+]);
+```
+
+<Warning>
+  When using this component in an LWR site, import the custom implementation of `loadScript` instead:
+  
+  ```javascript
+  import { loadScript } from 'c/resourceLoader';
+  ```
+  
+  This workaround addresses a Lightning Locker library limitation in LWR sites. See [Lightning Locker Limitations](https://developer.salesforce.com/docs/atlas.en-us.exp_cloud_lwr.meta/exp_cloud_lwr/template_limitations.htm).
+</Warning>
+
+## Initialization Pattern
+
+The component uses the `renderedCallback()` lifecycle hook with a guard flag:
+
+```javascript
+d3Initialized = false;
+
+async renderedCallback() {
+    if (this.d3Initialized) {
+        return;
+    }
+    this.d3Initialized = true;
+
+    try {
+        await Promise.all([
+            loadScript(this, D3 + '/d3.v5.min.js'),
+            loadStyle(this, D3 + '/style.css')
+        ]);
+        this.initializeD3();
+    } catch (error) {
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Error loading D3',
+                message: error.message,
+                variant: 'error'
+            })
+        );
+    }
+}
+```
+
+Key points:
+- Guard flag prevents multiple initializations
+- `Promise.all()` loads script and style in parallel
+- Errors are displayed using `ShowToastEvent`
+- Separate initialization method keeps code organized
+
+## D3 Visualization Setup
+
+The component creates a force-directed graph visualization:
+
+```javascript
+initializeD3() {
+    const svg = d3.select(this.template.querySelector('svg.d3'));
+    const width = this.svgWidth;
+    const height = this.svgHeight;
+    const color = d3.scaleOrdinal(d3.schemeDark2);
+
+    const simulation = d3
+        .forceSimulation()
+        .force(
+            'link',
+            d3.forceLink().id((d) => d.id)
+        )
+        .force('charge', d3.forceManyBody())
+        .force('center', d3.forceCenter(width / 2, height / 2));
+
+    // Create links and nodes...
+}
+```
+
+## Interactive Features
+
+The visualization includes drag-and-drop functionality:
+
+```javascript
+const node = svg
+    .append('g')
+    .attr('class', 'nodes')
+    .selectAll('circle')
+    .data(DATA.nodes)
+    .enter()
+    .append('circle')
+    .attr('r', 5)
+    .attr('fill', (d) => color(d.group))
+    .call(
+        d3
+            .drag()
+            .on('start', dragstarted)
+            .on('drag', dragged)
+            .on('end', dragended)
+    );
+```
+
+Drag event handlers:
+```javascript
+function dragstarted(d) {
+    if (!d3.event.active) {
+        simulation.alphaTarget(0.3).restart();
+    }
+    d.fx = d.x;
+    d.fy = d.y;
+}
+
+function dragged(d) {
+    d.fx = d3.event.x;
+    d.fy = d3.event.y;
+}
+
+function dragended(d) {
+    if (!d3.event.active) {
+        simulation.alphaTarget(0);
+    }
+    d.fx = null;
+    d.fy = null;
+}
+```
+
+## SVG Container
+
+The template uses an SVG element with manual DOM control:
+
+```html
+<svg
+    class="d3"
+    width={svgWidth}
+    height={svgHeight}
+    lwc:dom="manual"
+></svg>
+```
+
+The `lwc:dom="manual"` directive allows D3 to directly manipulate the SVG DOM.
+
+## Global D3 Variable
+
+Note the ESLint directive at the top of the file:
+
+```javascript
+/* global d3 */
+```
+
+This tells ESLint that `d3` is a global variable loaded from the external library.
+
+## Setting Up Static Resources
+
+1. Download D3.js v5 from [d3js.org](https://d3js.org/)
+2. Create a ZIP file containing:
+   - `d3.v5.min.js`
+   - `style.css` (for D3 styling)
+3. Upload as a static resource named `d3`
+4. Reference it using `@salesforce/resourceUrl/d3`
+
+## Related Components
+
+- [Chart.js Integration](/components/libs/chartjs) - Chart creation with Chart.js
+- [FullCalendar Integration](/components/libs/fullcalendar) - Calendar functionality

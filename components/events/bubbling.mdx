@@ -1,0 +1,256 @@
+---
+title: Event Bubbling
+description: Using bubbling events for child-to-grandparent communication
+---
+
+Event bubbling allows events to propagate up the DOM tree, enabling communication from deeply nested child components to ancestor components without requiring listeners on every intermediate element.
+
+## Overview
+
+This example demonstrates how bubbling events simplify event handling in component hierarchies. Instead of attaching listeners to each child component, a single listener on a parent container can handle events from all descendants.
+
+## Bubbling vs Non-Bubbling Events
+
+### Non-Bubbling (Default)
+
+Requires a listener on each child component:
+
+```html
+<!-- Each component needs its own listener -->
+<template for:each={items} for:item="item">
+    <c-child key={item.id} onselect={handleSelect}></c-child>
+</template>
+```
+
+### Bubbling
+
+Uses a single listener on a parent container:
+
+```html
+<!-- One listener on the container handles all child events -->
+<div onselect={handleSelect}>
+    <template for:each={items} for:item="item">
+        <c-child key={item.id}></c-child>
+    </template>
+</div>
+```
+
+## Child Component: c-contact-list-item-bubbling
+
+The bubbling version creates events with `bubbles: true`.
+
+### JavaScript (contactListItemBubbling.js)
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class ContactListItemBubbling extends LightningElement {
+    @api contact;
+
+    handleSelect(event) {
+        // 1. Prevent default behavior of anchor tag click
+        event.preventDefault();
+        
+        // 2. Create a bubbling custom event
+        const selectEvent = new CustomEvent('contactselect', {
+            bubbles: true
+        });
+        
+        // 3. Fire the custom event
+        this.dispatchEvent(selectEvent);
+    }
+}
+```
+
+**Key Points:**
+- `bubbles: true` allows the event to propagate up the DOM tree
+- Event can be caught by any ancestor component
+- Event name uses lowercase convention ('contactselect')
+
+### Template (contactListItemBubbling.html)
+
+```html
+<template>
+    <a href="#" onclick={handleSelect}>
+        <lightning-layout vertical-align="center">
+            <lightning-layout-item>
+                <img src={contact.Picture__c} alt="Profile photo" />
+            </lightning-layout-item>
+            <lightning-layout-item padding="around-small">
+                <p>{contact.Name}</p>
+            </lightning-layout-item>
+        </lightning-layout>
+    </a>
+</template>
+```
+
+## Parent Component: c-event-bubbling
+
+The parent places a single event listener on a container element.
+
+### JavaScript (eventBubbling.js)
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class EventBubbling extends LightningElement {
+    selectedContact;
+
+    @wire(getContactList) contacts;
+
+    handleContactSelect(event) {
+        // Access the component that fired the event
+        this.selectedContact = event.target.contact;
+    }
+}
+```
+
+**Key Points:**
+- `event.target` references the component that fired the event
+- Single handler processes events from all child components
+- Access child component's public properties via `event.target`
+
+### Template (eventBubbling.html)
+
+```html
+<template>
+    <lightning-card title="EventBubbling" icon-name="standard:logging">
+        <template lwc:if={contacts.data}>
+            <lightning-layout class="slds-var-m-around_medium">
+                <!-- Single listener on the container handles all child events -->
+                <lightning-layout-item
+                    class="wide"
+                    oncontactselect={handleContactSelect}
+                >
+                    <template for:each={contacts.data} for:item="contact">
+                        <fieldset key={contact.Id} class="slds-var-p-horizontal_x-small">
+                            <legend>c-contact-list-item-bubbling</legend>
+                            <c-contact-list-item-bubbling
+                                class="slds-show slds-is-relative"
+                                contact={contact}
+                            ></c-contact-list-item-bubbling>
+                        </fieldset>
+                    </template>
+                </lightning-layout-item>
+                <lightning-layout-item class="slds-var-m-left_medium">
+                    <template lwc:if={selectedContact}>
+                        <img src={selectedContact.Picture__c} alt="Profile photo" />
+                        <p>{selectedContact.Name}</p>
+                        <p>{selectedContact.Title}</p>
+                        <p>
+                            <lightning-formatted-phone
+                                value={selectedContact.Phone}
+                            ></lightning-formatted-phone>
+                        </p>
+                        <p>
+                            <lightning-formatted-email
+                                value={selectedContact.Email}
+                            ></lightning-formatted-email>
+                        </p>
+                    </template>
+                </lightning-layout-item>
+            </lightning-layout>
+        </template>
+        <template lwc:elseif={contacts.error}>
+            <c-error-panel errors={contacts.error}></c-error-panel>
+        </template>
+    </lightning-card>
+</template>
+```
+
+**Key Points:**
+- Listener `oncontactselect` is on the `lightning-layout-item`, not individual children
+- Child components don't need event listeners in their tags
+- More efficient for lists with many items
+
+## CustomEvent Options
+
+### bubbles
+
+**`bubbles: false` (default)**
+- Event only fires on the element that dispatched it
+- Parent must listen directly on the child component
+- Does not propagate up the DOM tree
+
+**`bubbles: true`**
+- Event propagates up through parent elements
+- Any ancestor can listen for the event
+- Stops at shadow DOM boundary (unless `composed: true`)
+
+```javascript
+// Non-bubbling event
+new CustomEvent('select', { bubbles: false })
+
+// Bubbling event
+new CustomEvent('select', { bubbles: true })
+```
+
+### composed
+
+**`composed: false` (default)**
+- Event does not cross shadow DOM boundaries
+- Only visible within the same shadow tree
+
+**`composed: true`**
+- Event crosses shadow DOM boundaries
+- Can be caught by components outside the shadow tree
+- Usually paired with `bubbles: true`
+
+```javascript
+// Event crosses shadow boundaries and bubbles
+new CustomEvent('select', {
+    bubbles: true,
+    composed: true
+})
+```
+
+### Combined Options Example
+
+```javascript
+// Full configuration
+const event = new CustomEvent('itemselect', {
+    detail: { id: '123', name: 'Item' },  // Data to pass
+    bubbles: true,                          // Propagate up DOM
+    composed: true                          // Cross shadow boundaries
+});
+
+this.dispatchEvent(event);
+```
+
+## When to Use Bubbling
+
+**Use bubbling events when:**
+- Handling events from multiple child components
+- Child components are in a loop or list
+- Event needs to reach grandparent or higher ancestor
+- Simplifying event listener management
+
+**Use non-bubbling events when:**
+- Event is specific to one child component
+- Preventing event propagation is desired
+- Explicit component relationships are important
+
+## Event Flow
+
+1. User clicks a contact in the bubbling list
+2. Child component creates `CustomEvent` with `bubbles: true`
+3. Event is dispatched from child component
+4. Event bubbles up through DOM tree
+5. Parent's listener on container element catches the event
+6. Parent accesses child component via `event.target`
+7. Parent retrieves contact data and displays details
+
+## Best Practices
+
+1. Use unique, descriptive event names (e.g., 'contactselect' not 'select')
+2. Set `bubbles: true` for events from list items or repeated components
+3. Use `event.target` to identify which child fired the event
+4. Consider `composed: true` only when crossing shadow DOM is necessary
+5. Document event names and expected detail structure
+
+## Source Files
+
+- Child: `force-app/main/default/lwc/contactListItemBubbling/`
+- Parent: `force-app/main/default/lwc/eventBubbling/`
+- Compare with: `force-app/main/default/lwc/eventWithData/` (non-bubbling version)

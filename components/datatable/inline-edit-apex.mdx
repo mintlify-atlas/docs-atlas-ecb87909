@@ -1,0 +1,214 @@
+---
+title: Inline Edit with Apex
+description: Enable inline editing in lightning-datatable with Apex-based updates
+---
+
+Implement inline editing in `lightning-datatable` with batch updates handled by a custom Apex controller.
+
+## Overview
+
+This example demonstrates how to:
+- Enable inline editing on datatable columns
+- Handle save events with draft values
+- Update multiple records using Apex
+- Refresh data after successful updates
+- Display toast notifications for success/error states
+
+## Component Code
+
+### JavaScript Controller
+
+```javascript title="datatableInlineEditWithApex.js"
+import { LightningElement, wire } from 'lwc';
+import getContacts from '@salesforce/apex/ContactController.getContactList';
+import updateContacts from '@salesforce/apex/ContactController.updateContacts';
+import { refreshApex } from '@salesforce/apex';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+const COLS = [
+    { label: 'First Name', fieldName: 'FirstName', editable: true },
+    { label: 'Last Name', fieldName: 'LastName', editable: true },
+    { label: 'Title', fieldName: 'Title', editable: true },
+    { label: 'Phone', fieldName: 'Phone', type: 'phone', editable: true },
+    { label: 'Email', fieldName: 'Email', type: 'email', editable: true }
+];
+
+export default class DatatableInlineEditWithApex extends LightningElement {
+    columns = COLS;
+    draftValues = [];
+
+    @wire(getContacts)
+    contacts;
+
+    async handleSave(event) {
+        const updatedFields = event.detail.draftValues;
+
+        // Clear all datatable draft values
+        this.draftValues = [];
+
+        try {
+            // Pass edited fields to the updateContacts Apex controller
+            await updateContacts({ contactsForUpdate: updatedFields });
+
+            // Report success with a toast
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Contacts updated',
+                    variant: 'success'
+                })
+            );
+
+            // Display fresh data in the datatable
+            await refreshApex(this.contacts);
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error while updating or refreshing records',
+                    message: error.body.message,
+                    variant: 'error'
+                })
+            );
+        }
+    }
+}
+```
+
+### Template
+
+```html title="datatableInlineEditWithApex.html" {9-16}
+<template>
+    <lightning-card title="Datatable Inline Edit With Apex">
+        <div class="slds-var-m-around_medium">
+            <template lwc:if={contacts.data}>
+                <lightning-datatable
+                    key-field="Id"
+                    data={contacts.data}
+                    columns={columns}
+                    onsave={handleSave}
+                    draft-values={draftValues}
+                    hide-checkbox-column>
+                </lightning-datatable>
+            </template>
+            <template lwc:elseif={contacts.error}>
+                <c-error-panel errors={contacts.error}></c-error-panel>
+            </template>
+        </div>
+    </lightning-card>
+</template>
+```
+
+## Apex Controller
+
+```apex title="ContactController.cls"
+public with sharing class ContactController {
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> getContactList() {
+        return [
+            SELECT Id, Name, FirstName, LastName, Title, Phone, Email, Picture__c
+            FROM Contact
+            WHERE Picture__c != NULL
+            WITH USER_MODE
+            LIMIT 10
+        ];
+    }
+
+    @AuraEnabled
+    public static void updateContacts(List<Contact> contactsForUpdate) {
+        // Make sure we can update the database before trying to update
+        if (!Schema.sObjectType.Contact.isUpdateable()) {
+            throw new SecurityException(
+                'Insufficient permissions to update contacts'
+            );
+        }
+        update contactsForUpdate;
+    }
+}
+```
+
+## Key Features
+
+### Editable Columns
+
+Set `editable: true` on column definitions:
+
+```javascript {2}
+{
+    label: 'First Name',
+    fieldName: 'FirstName',
+    editable: true
+}
+```
+
+### Draft Values
+
+Track pending edits with the `draft-values` attribute:
+
+```javascript
+draftValues = [];
+```
+
+Clear after save:
+
+```javascript
+this.draftValues = [];
+```
+
+### Save Handler
+
+The `onsave` event provides draft values:
+
+```javascript
+handleSave(event) {
+    const updatedFields = event.detail.draftValues;
+    // Process updates
+}
+```
+
+### Refresh Data
+
+Use `refreshApex` to reload wired data:
+
+```javascript
+await refreshApex(this.contacts);
+```
+
+## Implementation Steps
+
+1. **Define editable columns** - Add `editable: true` to column definitions
+2. **Track draft values** - Initialize `draftValues = []` property
+3. **Handle save event** - Implement `handleSave` method
+4. **Call Apex** - Pass draft values to Apex controller
+5. **Clear drafts** - Reset `draftValues` after save
+6. **Refresh data** - Use `refreshApex` to reload records
+7. **Show feedback** - Dispatch toast events for success/error
+
+## Comparison with UI API
+
+| Feature | Apex Approach | UI API Approach |
+|---------|---------------|------------------|
+| **Update Method** | Custom Apex method | `updateRecord` from `lightning/uiRecordApi` |
+| **Batch Updates** | Single Apex call | Parallel Promise.all |
+| **Custom Logic** | Supports complex business logic | Standard CRUD operations |
+| **FLS/Security** | Manual enforcement | Automatic enforcement |
+| **Use Case** | Complex updates, validations | Simple field updates |
+
+## Best Practices
+
+- Always clear `draftValues` after processing
+- Implement proper error handling
+- Refresh data after successful updates
+- Provide user feedback with toast notifications
+- Enforce field-level security in Apex
+- Use `async/await` for cleaner asynchronous code
+
+## Related Components
+
+- [Inline Edit with UI API](/components/datatable/inline-edit-ui-api)
+- [Custom Data Type](/components/datatable/custom-data-type)
+
+## Source
+
+- `datatableInlineEditWithApex.js:7-12` - Editable column definitions
+- `datatableInlineEditWithApex.js:22-52` - Save handler implementation
+- `ContactController.cls:44-52` - Apex update method

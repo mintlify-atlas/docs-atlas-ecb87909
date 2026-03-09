@@ -1,0 +1,239 @@
+---
+title: Inline Edit with UI API
+description: Enable inline editing in lightning-datatable using Lightning UI API
+---
+
+Implement inline editing in `lightning-datatable` with the Lightning UI API for automatic field-level security and parallel updates.
+
+## Overview
+
+This example demonstrates how to:
+- Enable inline editing on datatable columns
+- Use `updateRecord` from Lightning UI API
+- Update multiple records in parallel
+- Import field references from schema
+- Refresh data after successful updates
+
+## Component Code
+
+### JavaScript Controller
+
+```javascript title="datatableInlineEditWithUiApi.js"
+import { LightningElement, wire } from 'lwc';
+import getContacts from '@salesforce/apex/ContactController.getContactList';
+import { refreshApex } from '@salesforce/apex';
+import { updateRecord } from 'lightning/uiRecordApi';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+import FIRSTNAME_FIELD from '@salesforce/schema/Contact.FirstName';
+import LASTNAME_FIELD from '@salesforce/schema/Contact.LastName';
+import TITLE_FIELD from '@salesforce/schema/Contact.Title';
+import PHONE_FIELD from '@salesforce/schema/Contact.Phone';
+import EMAIL_FIELD from '@salesforce/schema/Contact.Email';
+
+const COLS = [
+    {
+        label: 'First Name',
+        fieldName: FIRSTNAME_FIELD.fieldApiName,
+        editable: true
+    },
+    {
+        label: 'Last Name',
+        fieldName: LASTNAME_FIELD.fieldApiName,
+        editable: true
+    },
+    { label: 'Title', fieldName: TITLE_FIELD.fieldApiName, editable: true },
+    {
+        label: 'Phone',
+        fieldName: PHONE_FIELD.fieldApiName,
+        type: 'phone',
+        editable: true
+    },
+    {
+        label: 'Email',
+        fieldName: EMAIL_FIELD.fieldApiName,
+        type: 'email',
+        editable: true
+    }
+];
+
+export default class DatatableInlineEditWithUiApi extends LightningElement {
+    columns = COLS;
+    draftValues = [];
+
+    @wire(getContacts)
+    contacts;
+
+    async handleSave(event) {
+        // Convert datatable draft values into record objects
+        const records = event.detail.draftValues.slice().map((draftValue) => {
+            const fields = Object.assign({}, draftValue);
+            return { fields };
+        });
+
+        // Clear all datatable draft values
+        this.draftValues = [];
+
+        try {
+            // Update all records in parallel thanks to the UI API
+            const recordUpdatePromises = records.map((record) =>
+                updateRecord(record)
+            );
+            await Promise.all(recordUpdatePromises);
+
+            // Report success with a toast
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Contacts updated',
+                    variant: 'success'
+                })
+            );
+
+            // Display fresh data in the datatable
+            await refreshApex(this.contacts);
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error while updating or refreshing records',
+                    message: error.body.message,
+                    variant: 'error'
+                })
+            );
+        }
+    }
+}
+```
+
+### Template
+
+```html title="datatableInlineEditWithUiApi.html" {9-15}
+<template>
+    <lightning-card title="Datatable Inline Edit With UI API">
+        <div class="slds-var-m-around_medium">
+            <template lwc:if={contacts.data}>
+                <lightning-datatable
+                    key-field="Id"
+                    data={contacts.data}
+                    columns={columns}
+                    onsave={handleSave}
+                    draft-values={draftValues}
+                    hide-checkbox-column>
+                </lightning-datatable>
+            </template>
+            <template lwc:elseif={contacts.error}>
+                <c-error-panel errors={contacts.error}></c-error-panel>
+            </template>
+        </div>
+    </lightning-card>
+</template>
+```
+
+## Key Features
+
+### Schema Imports
+
+Import field references to ensure correct API names:
+
+```javascript
+import FIRSTNAME_FIELD from '@salesforce/schema/Contact.FirstName';
+import LASTNAME_FIELD from '@salesforce/schema/Contact.LastName';
+```
+
+Use in column definitions:
+
+```javascript {3}
+{
+    label: 'First Name',
+    fieldName: FIRSTNAME_FIELD.fieldApiName,
+    editable: true
+}
+```
+
+### UI API Integration
+
+Transform draft values into UI API format:
+
+```javascript
+const records = event.detail.draftValues.slice().map((draftValue) => {
+    const fields = Object.assign({}, draftValue);
+    return { fields };
+});
+```
+
+### Parallel Updates
+
+Update multiple records simultaneously:
+
+```javascript
+const recordUpdatePromises = records.map((record) =>
+    updateRecord(record)
+);
+await Promise.all(recordUpdatePromises);
+```
+
+## Implementation Steps
+
+1. **Import schema references** - Import field API names from schema
+2. **Define editable columns** - Use schema references in fieldName
+3. **Track draft values** - Initialize `draftValues = []` property
+4. **Handle save event** - Transform drafts to UI API format
+5. **Update records** - Use `updateRecord` with Promise.all
+6. **Clear drafts** - Reset `draftValues` after save
+7. **Refresh data** - Use `refreshApex` to reload records
+8. **Show feedback** - Dispatch toast events
+
+## UI API vs Apex Comparison
+
+| Feature | UI API Approach | Apex Approach |
+|---------|-----------------|---------------|
+| **Import Statements** | Schema imports required | Not required |
+| **Update Method** | `updateRecord` | Custom Apex method |
+| **Parallel Processing** | Promise.all for concurrent updates | Single batch update |
+| **FLS Enforcement** | Automatic | Manual |
+| **Custom Validation** | Limited to standard rules | Full custom logic support |
+| **Performance** | Parallel updates for speed | Single server call |
+| **Complexity** | Lower (uses platform APIs) | Higher (custom code) |
+
+## Benefits of UI API
+
+- **Automatic Security**: Field-level security enforced automatically
+- **Parallel Processing**: Multiple records updated concurrently
+- **Standard Validation**: Platform validation rules applied
+- **No Apex Code**: Reduces custom code maintenance
+- **Type Safety**: Schema imports prevent field name errors
+
+## When to Use
+
+**Choose UI API when:**
+- Updates are simple field changes
+- Standard validation rules are sufficient
+- Parallel processing is beneficial
+- Minimizing custom code is priority
+
+**Choose Apex when:**
+- Complex business logic is required
+- Custom validation is needed
+- Multiple objects need updating
+- Batch processing is more appropriate
+
+## Best Practices
+
+- Always import field references from schema
+- Use `slice()` to avoid mutating original draft values
+- Implement proper error handling
+- Clear `draftValues` before async operations
+- Use `Promise.all` for parallel updates
+- Provide user feedback with toast notifications
+- Refresh wired data after successful updates
+
+## Related Components
+
+- [Inline Edit with Apex](/components/datatable/inline-edit-apex)
+- [Custom Data Type](/components/datatable/custom-data-type)
+
+## Source
+
+- `datatableInlineEditWithUiApi.js:7-11` - Schema field imports
+- `datatableInlineEditWithUiApi.js:13-37` - Column definitions with schema references
+- `datatableInlineEditWithUiApi.js:46-83` - Save handler with UI API updates

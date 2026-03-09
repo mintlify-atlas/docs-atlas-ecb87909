@@ -1,0 +1,203 @@
+---
+title: GraphQL Pagination
+description: Run a GraphQL query that uses pagination using @wire
+---
+
+## Overview
+
+The `graphqlPagination` component demonstrates cursor-based pagination with GraphQL queries. It uses the `pageInfo` object to navigate through result sets and track pagination state.
+
+## Source
+
+`force-app/main/default/lwc/graphqlPagination`
+
+## Key Features
+
+- Cursor-based pagination with `after` parameter
+- PageInfo metadata for navigation
+- Total count tracking
+- Previous/next page detection
+- Reactive variable updates
+
+## GraphQL Pagination Query
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { gql, graphql } from 'lightning/graphql';
+
+const pageSize = 3;
+
+export default class GraphqlPagination extends LightningElement {
+    after;
+    pageNumber = 1;
+
+    @wire(graphql, {
+        query: gql`
+            query paginatedContacts($after: String, $pageSize: Int!) {
+                uiapi {
+                    query {
+                        Contact(
+                            first: $pageSize
+                            after: $after
+                            orderBy: { Name: { order: ASC } }
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Name {
+                                        value
+                                    }
+                                }
+                            }
+                            pageInfo {
+                                endCursor
+                                hasNextPage
+                                hasPreviousPage
+                            }
+                            totalCount
+                        }
+                    }
+                }
+            }
+        `,
+        variables: '$variables'
+    })
+    contacts;
+}
+```
+
+## Pagination Parameters
+
+### first
+
+Specifies the number of records to retrieve per page:
+
+```graphql
+Contact(
+    first: $pageSize
+    after: $after
+)
+```
+
+### after
+
+Cursor pointing to the position after which to start fetching records:
+
+```javascript
+after: this.after || null
+```
+
+## PageInfo Object
+
+The `pageInfo` object provides pagination metadata:
+
+```graphql
+pageInfo {
+    endCursor
+    hasNextPage
+    hasPreviousPage
+}
+```
+
+- **`endCursor`**: Cursor position at the end of the current page
+- **`hasNextPage`**: Boolean indicating if more records exist
+- **`hasPreviousPage`**: Boolean indicating if previous records exist
+
+## Total Count
+
+Request the total number of records matching the query:
+
+```graphql
+totalCount
+```
+
+**Performance Note**: Requesting `totalCount` can have performance implications for large and/or complex queries. Use with caution.
+
+## Reactive Variables Pattern
+
+Provide pagination variables through a getter:
+
+```javascript
+get variables() {
+    return {
+        after: this.after || null,
+        pageSize
+    };
+}
+```
+
+## Navigation Handlers
+
+### Next Page
+
+Update the cursor to the end of the current page:
+
+```javascript
+handleNext() {
+    if (this.contacts.data?.uiapi.query.Contact.pageInfo.hasNextPage) {
+        this.after = this.contacts.data.uiapi.query.Contact.pageInfo.endCursor;
+        this.pageNumber++;
+    }
+}
+```
+
+### Reset to First Page
+
+Clear the cursor to return to the beginning:
+
+```javascript
+handleReset() {
+    this.after = null;
+    this.pageNumber = 1;
+}
+```
+
+## Page State Getters
+
+Determine navigation state based on pageInfo:
+
+```javascript
+get isFirstPage() {
+    return !this.contacts.data?.uiapi.query.Contact.pageInfo.hasPreviousPage;
+}
+
+get isLastPage() {
+    return !this.contacts.data?.uiapi.query.Contact.pageInfo.hasNextPage;
+}
+
+get totalPages() {
+    return Math.ceil(this.totalCount / pageSize);
+}
+```
+
+## Pagination Controls
+
+Disable navigation buttons based on page state:
+
+```html
+<lightning-button-icon
+    disabled={isFirstPage}
+    icon-name="utility:skip_back"
+    onclick={handleReset}
+></lightning-button-icon>
+
+<lightning-button-icon
+    disabled={isLastPage}
+    icon-name="utility:chevronright"
+    onclick={handleNext}
+></lightning-button-icon>
+```
+
+## Pagination Pattern Summary
+
+1. Define `after` and `pageSize` variables
+2. Request `pageInfo` and optionally `totalCount`
+3. Use `endCursor` to navigate to the next page
+4. Check `hasNextPage` and `hasPreviousPage` for navigation state
+5. Update reactive variables to trigger query re-execution
+
+## See Also
+
+- [GraphQL Variables](/components/graphql/variables)
+- [GraphQL Contacts](/components/graphql/basic-query)
+- [GraphQL Refresh](/components/graphql/refresh)

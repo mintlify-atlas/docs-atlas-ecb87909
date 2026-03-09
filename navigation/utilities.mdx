@@ -1,0 +1,295 @@
+---
+title: Navigation Utilities
+description: Advanced navigation patterns including list views, related lists, and more
+icon: wrench
+---
+
+## Overview
+
+Beyond basic record and page navigation, Lightning Web Components support advanced navigation patterns for list views, related lists, and other specialized use cases.
+
+## Navigate to List View
+
+Navigate to an object's list view with optional filtering.
+
+<CodeGroup>
+```javascript navToListView.js
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToListView extends NavigationMixin(LightningElement) {
+    navigateToList() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'Contact',
+                actionName: 'list'
+            },
+            state: {
+                filterName: 'Recent'
+            }
+        });
+    }
+}
+```
+
+```html navToListView.html
+<template>
+    <lightning-card title="NavToListView">
+        <lightning-button
+            label="Go to Contact List View"
+            onclick={navigateToList}
+        ></lightning-button>
+    </lightning-card>
+</template>
+```
+</CodeGroup>
+
+**Source:** [navToListView.js:5](~/workspace/source/force-app/main/default/lwc/navToListView/navToListView.js)
+
+<Info>
+The `filterName` in the state object specifies which list view to display. Common values include:
+- `Recent` - Recently viewed records
+- `AllContacts` - All contacts (or similar for other objects)
+- Custom list view API names
+</Info>
+
+## Navigate to Related List
+
+Navigate to a related list on a record's detail page.
+
+<CodeGroup>
+```javascript navToRelatedList.js
+import { LightningElement, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import getSingleAccount from '@salesforce/apex/AccountController.getSingleAccount';
+
+export default class NavToRelatedList extends NavigationMixin(
+    LightningElement
+) {
+    @wire(getSingleAccount) account;
+
+    navigateToRelatedList() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordRelationshipPage',
+            attributes: {
+                recordId: this.account.data.Id,
+                objectApiName: 'Account',
+                relationshipApiName: 'Contacts',
+                actionName: 'view'
+            }
+        });
+    }
+}
+```
+
+```html navToRelatedList.html
+<template>
+    <lightning-card title="NavToRelatedList">
+        <template lwc:if={account.data}>
+            <lightning-button
+                label="View Related Contacts"
+                onclick={navigateToRelatedList}
+            ></lightning-button>
+        </template>
+    </lightning-card>
+</template>
+```
+</CodeGroup>
+
+**Source:** [navToRelatedList.js:10](~/workspace/source/force-app/main/default/lwc/navToRelatedList/navToRelatedList.js)
+
+<Tip>
+The `relationshipApiName` is the API name of the relationship field, which is often the plural name of the related object (e.g., 'Contacts', 'Opportunities').
+</Tip>
+
+## PageReference Types for Utilities
+
+### standard__objectPage (list view)
+
+Navigate to filtered object list views.
+
+<ParamField path="type" type="string" required>
+  Must be `standard__objectPage`
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the object (e.g., 'Contact', 'Account')
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  Must be `list` for list views
+</ParamField>
+
+<ParamField path="state.filterName" type="string">
+  The API name of the list view filter (e.g., 'Recent', 'AllContacts')
+</ParamField>
+
+### standard__recordRelationshipPage
+
+Navigate to related lists on record pages.
+
+<ParamField path="type" type="string" required>
+  Must be `standard__recordRelationshipPage`
+</ParamField>
+
+<ParamField path="attributes.recordId" type="string" required>
+  The ID of the parent record
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the parent object
+</ParamField>
+
+<ParamField path="attributes.relationshipApiName" type="string" required>
+  The API name of the relationship (e.g., 'Contacts', 'Opportunities')
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  Usually `view` for viewing the related list
+</ParamField>
+
+## Advanced Patterns
+
+### Dynamic List View Selection
+
+Allow users to select which list view to navigate to:
+
+```javascript
+export default class DynamicListNav extends NavigationMixin(LightningElement) {
+    listViewOptions = [
+        { label: 'Recent Contacts', value: 'Recent' },
+        { label: 'All Contacts', value: 'AllContacts' },
+        { label: 'My Contacts', value: 'MyContacts' }
+    ];
+    
+    selectedListView = 'Recent';
+    
+    handleListViewChange(event) {
+        this.selectedListView = event.detail.value;
+    }
+    
+    navigateToSelectedListView() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'Contact',
+                actionName: 'list'
+            },
+            state: {
+                filterName: this.selectedListView
+            }
+        });
+    }
+}
+```
+
+### Navigate to Related List with Context
+
+Navigate to a related list and preserve context:
+
+```javascript
+export default class ContextualRelatedNav extends NavigationMixin(LightningElement) {
+    @api recordId;
+    @api objectApiName;
+    
+    navigateToOpportunities() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordRelationshipPage',
+            attributes: {
+                recordId: this.recordId,
+                objectApiName: this.objectApiName,
+                relationshipApiName: 'Opportunities',
+                actionName: 'view'
+            }
+        });
+    }
+}
+```
+
+## Common Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Filtered Views" icon="filter">
+    Navigate to pre-filtered list views for specific user workflows
+  </Card>
+  
+  <Card title="Related Record Exploration" icon="diagram-project">
+    Jump directly to related lists to explore record relationships
+  </Card>
+  
+  <Card title="Custom Navigation Menus" icon="bars">
+    Build custom navigation experiences with multiple list view options
+  </Card>
+  
+  <Card title="Contextual Actions" icon="bolt">
+    Provide quick access to related data from custom components
+  </Card>
+</CardGroup>
+
+## Finding Relationship API Names
+
+To find the correct `relationshipApiName` for a related list:
+
+1. Navigate to **Setup** > **Object Manager**
+2. Select the parent object (e.g., Account)
+3. Go to **Fields & Relationships**
+4. Find the relationship field
+5. Use the **Child Relationship Name** value
+
+<Warning>
+If the relationship API name is incorrect, the navigation will fail or navigate to an unexpected page.
+</Warning>
+
+## Summary Table
+
+| Navigation Target | Type | Key Attributes |
+|------------------|------|----------------|
+| Object List View | `standard__objectPage` | `actionName: 'list'`, `state.filterName` |
+| Related List | `standard__recordRelationshipPage` | `recordId`, `relationshipApiName` |
+
+## Complete Example: Multi-Option Navigator
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import getAccount from '@salesforce/apex/AccountController.getSingleAccount';
+
+export default class MultiOptionNavigator extends NavigationMixin(
+    LightningElement
+) {
+    @wire(getAccount) account;
+    
+    // Navigate to all contacts list view
+    navigateToAllContacts() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'Contact',
+                actionName: 'list'
+            },
+            state: {
+                filterName: 'AllContacts'
+            }
+        });
+    }
+    
+    // Navigate to account's related contacts
+    navigateToAccountContacts() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordRelationshipPage',
+            attributes: {
+                recordId: this.account.data.Id,
+                objectApiName: 'Account',
+                relationshipApiName: 'Contacts',
+                actionName: 'view'
+            }
+        });
+    }
+}
+```
+
+## Related Examples
+
+- [Navigate to Records](/navigation/records) - View and edit individual records
+- [Navigate to Pages](/navigation/pages) - Navigate to standard Salesforce pages

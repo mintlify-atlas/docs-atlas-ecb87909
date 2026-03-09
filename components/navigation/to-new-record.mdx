@@ -1,0 +1,116 @@
+---
+title: Navigate to New Record
+description: Navigate to new record creation pages with optional default field values
+---
+
+Navigate to the new record page for any object. Optionally pre-populate fields with default values using `encodeDefaultFieldValues`.
+
+## Source
+
+- `force-app/main/default/lwc/navToNewRecord/navToNewRecord.js`
+- `force-app/main/default/lwc/navToNewRecordWithDefaults/navToNewRecordWithDefaults.js`
+
+## Basic Usage
+
+```javascript
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToNewRecord extends NavigationMixin(LightningElement) {
+    navigateToNewContact() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'Contact',
+                actionName: 'new'
+            }
+        });
+    }
+}
+```
+
+## With Default Field Values
+
+```javascript
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import { encodeDefaultFieldValues } from 'lightning/pageReferenceUtils';
+
+export default class NavToNewRecordWithDefaults extends NavigationMixin(
+    LightningElement
+) {
+    navigateToNewContactWithDefaults() {
+        const defaultValues = encodeDefaultFieldValues({
+            FirstName: 'Morag',
+            LastName: 'de Fault',
+            LeadSource: 'Other'
+        });
+
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'Contact',
+                actionName: 'new'
+            },
+            state: {
+                defaultFieldValues: defaultValues
+            }
+        });
+    }
+}
+```
+
+## NavigationMixin
+
+Extend your component with `NavigationMixin` to access navigation capabilities:
+
+```javascript
+export default class NavToNewRecord extends NavigationMixin(LightningElement) {
+    // component code
+}
+```
+
+## PageReference
+
+<ParamField path="type" type="string" required>
+  Set to `standard__objectPage` for object pages
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the object (e.g., 'Contact', 'Account', 'CustomObject__c')
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  Set to `new` to display the new record creation page
+</ParamField>
+
+<ParamField path="state.defaultFieldValues" type="string">
+  Encoded default field values. Use `encodeDefaultFieldValues()` from `lightning/pageReferenceUtils` to encode an object of field name-value pairs
+</ParamField>
+
+## Default Field Values
+
+Use `encodeDefaultFieldValues` to pre-populate form fields:
+
+```javascript
+import { encodeDefaultFieldValues } from 'lightning/pageReferenceUtils';
+
+const defaultValues = encodeDefaultFieldValues({
+    FirstName: 'John',
+    LastName: 'Doe',
+    Email: 'john.doe@example.com',
+    LeadSource: 'Web'
+});
+```
+
+## Key Features
+
+- Navigate to new record creation forms
+- Pre-populate fields with default values
+- Supports all standard and custom objects
+- Type-safe navigation with PageReference
+
+## Related
+
+- [Navigate to Record](/components/navigation/to-record)
+- [Navigate to List View](/components/navigation/to-list-view)

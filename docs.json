@@ -1,122 +1,233 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Lightning Web Components Recipes",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#0aa6e4",
+    "light": "#044279",
+    "dark": "#c5eaf8"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://media.brand.dev/70521436-937d-4caf-b615-f52357a32a49.png",
+  "logo": {
+    "light": "/logo-light.png",
+    "dark": "/logo-light.png"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/trailheadapps/lwc-recipes"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/trailheadapps/lwc-recipes"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "introduction",
+              "installation",
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Basics",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "basics/hello-world",
+              "basics/data-binding",
+              "basics/conditional-rendering",
+              "basics/expressions",
+              "basics/iteration"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Component Composition",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "composition/overview",
+              "composition/parent-to-child",
+              "composition/nesting",
+              "composition/app-builder"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Event Handling",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "events/simple-events",
+              "events/data-events",
+              "events/bubbling"
+            ]
+          },
+          {
+            "group": "Data Access",
+            "pages": [
+              "data/lightning-data-service",
+              "data/wire-service",
+              "data/apex-integration",
+              "data/graphql"
+            ]
+          },
+          {
+            "group": "Component Features",
+            "pages": [
+              "features/public-properties",
+              "features/public-methods",
+              "features/lifecycle-hooks",
+              "features/light-dom"
+            ]
+          },
+          {
+            "group": "Navigation",
+            "pages": [
+              "navigation/overview",
+              "navigation/records",
+              "navigation/pages",
+              "navigation/utilities"
+            ]
+          },
+          {
+            "group": "Styling",
+            "pages": [
+              "styling/css-basics",
+              "styling/hooks",
+              "styling/themes"
+            ]
+          },
+          {
+            "group": "Advanced Topics",
+            "pages": [
+              "advanced/third-party-libs",
+              "advanced/message-service",
+              "advanced/workspace-api",
+              "advanced/dynamic-interactions",
+              "advanced/aura-interop"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/testing",
+              "guides/deployment",
+              "guides/best-practices"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Component Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Hello World",
             "pages": [
-              "api-reference/introduction"
+              "components/hello/hello",
+              "components/hello/hello-binding",
+              "components/hello/hello-expressions",
+              "components/hello/hello-conditional-rendering",
+              "components/hello/hello-for-each",
+              "components/hello/hello-iterator"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Apex Integration",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "components/apex/wire-to-property",
+              "components/apex/wire-to-function",
+              "components/apex/wire-with-params",
+              "components/apex/imperative-method",
+              "components/apex/imperative-with-params",
+              "components/apex/complex-params"
+            ]
+          },
+          {
+            "group": "Wire Service",
+            "pages": [
+              "components/wire/get-record",
+              "components/wire/get-records",
+              "components/wire/get-object-info",
+              "components/wire/get-picklist-values",
+              "components/wire/list-view"
+            ]
+          },
+          {
+            "group": "Lightning Data Service",
+            "pages": [
+              "components/lds/record-form",
+              "components/lds/record-edit-form",
+              "components/lds/record-view-form",
+              "components/lds/create-record",
+              "components/lds/delete-record"
+            ]
+          },
+          {
+            "group": "GraphQL",
+            "pages": [
+              "components/graphql/basic-query",
+              "components/graphql/variables",
+              "components/graphql/pagination",
+              "components/graphql/refresh",
+              "components/graphql/multiple-objects"
+            ]
+          },
+          {
+            "group": "Events",
+            "pages": [
+              "components/events/simple",
+              "components/events/with-data",
+              "components/events/bubbling"
+            ]
+          },
+          {
+            "group": "Composition",
+            "pages": [
+              "components/composition/basics",
+              "components/composition/iteration",
+              "components/composition/contact-search"
+            ]
+          },
+          {
+            "group": "Navigation",
+            "pages": [
+              "components/navigation/to-record",
+              "components/navigation/to-new-record",
+              "components/navigation/to-list-view",
+              "components/navigation/to-home",
+              "components/navigation/to-related-list"
+            ]
+          },
+          {
+            "group": "Datatables",
+            "pages": [
+              "components/datatable/custom-data-type",
+              "components/datatable/inline-edit-apex",
+              "components/datatable/inline-edit-ui-api"
+            ]
+          },
+          {
+            "group": "Third-Party Libraries",
+            "pages": [
+              "components/libs/chartjs",
+              "components/libs/d3",
+              "components/libs/fullcalendar"
+            ]
+          },
+          {
+            "group": "Miscellaneous",
+            "pages": [
+              "components/misc/modal",
+              "components/misc/toast",
+              "components/misc/rest-api",
+              "components/misc/i18n",
+              "components/misc/static-resources",
+              "components/misc/dom-query"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

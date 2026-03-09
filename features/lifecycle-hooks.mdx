@@ -1,0 +1,316 @@
+---
+title: Lifecycle Hooks
+description: Understand Lightning Web Component lifecycle hooks and when to use them
+---
+
+## Overview
+
+Lifecycle hooks are special callback methods that execute at specific stages of a component's lifecycle. They allow you to run code when a component is created, added to the DOM, updated, or removed.
+
+<Note>
+Lifecycle hooks are reserved method names. Do not create custom methods with these names.
+</Note>
+
+## Available Lifecycle Hooks
+
+### connectedCallback()
+
+Called when the component is inserted into the DOM. Use this hook to:
+- Initialize component state
+- Fetch initial data
+- Register event listeners
+- Set up subscriptions
+
+```javascript
+// viewToRefresh.js
+import { LightningElement, wire } from 'lwc';
+import getTotalNumber from '@salesforce/apex/AccountController.getTotalNumber';
+import {
+    registerRefreshHandler,
+    unregisterRefreshHandler
+} from 'lightning/refresh';
+import { refreshApex } from '@salesforce/apex';
+
+export default class ViewToRefresh extends LightningElement {
+    refreshHandlerID;
+
+    @wire(getTotalNumber)
+    numOfAccounts;
+
+    connectedCallback() {
+        this.refreshHandlerID = registerRefreshHandler(
+            this,
+            this.refreshHandler
+        );
+    }
+
+    disconnectedCallback() {
+        unregisterRefreshHandler(this.refreshHandlerID);
+    }
+
+    async refreshHandler() {
+        await refreshApex(this.numOfAccounts);
+    }
+}
+```
+
+**Source**: `force-app/main/default/lwc/viewToRefresh/viewToRefresh.js:15-20`
+
+<Note>
+The `connectedCallback()` can fire more than once. For example, if you remove a component from the DOM and then reinsert it, the hook fires again.
+</Note>
+
+### renderedCallback()
+
+Called after every render of the component. Use this hook to:
+- Perform DOM manipulations
+- Initialize third-party libraries
+- Measure element dimensions
+- Set focus on elements
+
+```javascript
+// libsChartjs.js
+import { LightningElement } from 'lwc';
+import chartjs from '@salesforce/resourceUrl/chartJs';
+import { loadScript } from 'lightning/platformResourceLoader';
+
+export default class LibsChartjs extends LightningElement {
+    error;
+    chart;
+    chartjsInitialized = false;
+
+    config = {
+        type: 'doughnut',
+        data: {
+            datasets: [
+                {
+                    data: [100, 200, 300, 400, 500],
+                    backgroundColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(54, 162, 235)'
+                    ]
+                }
+            ],
+            labels: ['Red', 'Orange', 'Yellow', 'Green', 'Blue']
+        }
+    };
+
+    async renderedCallback() {
+        if (this.chartjsInitialized) {
+            return;
+        }
+        this.chartjsInitialized = true;
+
+        try {
+            await loadScript(this, chartjs);
+            const canvas = document.createElement('canvas');
+            this.template.querySelector('div.chart').appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+            this.chart = new window.Chart(ctx, this.config);
+        } catch (error) {
+            this.error = error;
+        }
+    }
+}
+```
+
+**Source**: `force-app/main/default/lwc/libsChartjs/libsChartjs.js:62-77`
+
+<Note>
+The `renderedCallback()` fires frequently. Always use a guard to ensure expensive operations run only once or when necessary.
+</Note>
+
+### disconnectedCallback()
+
+Called when the component is removed from the DOM. Use this hook to:
+- Clean up event listeners
+- Cancel pending operations
+- Unregister handlers
+- Clear timers and intervals
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import {
+    registerRefreshHandler,
+    unregisterRefreshHandler
+} from 'lightning/refresh';
+
+export default class ViewToRefresh extends LightningElement {
+    refreshHandlerID;
+
+    connectedCallback() {
+        this.refreshHandlerID = registerRefreshHandler(
+            this,
+            this.refreshHandler
+        );
+    }
+
+    disconnectedCallback() {
+        unregisterRefreshHandler(this.refreshHandlerID);
+    }
+}
+```
+
+**Source**: `force-app/main/default/lwc/viewToRefresh/viewToRefresh.js:22-24`
+
+### errorCallback(error, stack)
+
+Called when a descendant component throws an error. Use this hook to:
+- Handle errors in child components
+- Log errors to external services
+- Display error messages to users
+- Implement error boundaries
+
+```javascript
+import { LightningElement } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+export default class ErrorBoundary extends LightningElement {
+    error;
+
+    errorCallback(error, stack) {
+        // Log error details
+        console.error('Error:', error);
+        console.error('Stack:', stack);
+        
+        // Store error for display
+        this.error = error;
+        
+        // Show toast notification
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'An error occurred',
+                message: error.message,
+                variant: 'error'
+            })
+        );
+    }
+}
+```
+
+<Note>
+The `errorCallback()` only catches errors in the component's descendants, not in the component itself.
+</Note>
+
+## Lifecycle Flow
+
+The typical lifecycle sequence is:
+
+1. **constructor()** - Component instance is created
+2. **connectedCallback()** - Component inserted into DOM
+3. **renderedCallback()** - Component rendered (fires after every render)
+4. **disconnectedCallback()** - Component removed from DOM
+
+## Common Patterns
+
+### Initialize Once Pattern
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class InitOnce extends LightningElement {
+    initialized = false;
+
+    renderedCallback() {
+        if (this.initialized) {
+            return;
+        }
+        this.initialized = true;
+        
+        // Run initialization code once
+        this.initializeComponent();
+    }
+    
+    initializeComponent() {
+        // Expensive initialization logic
+    }
+}
+```
+
+### Subscription Pattern
+
+```javascript
+import { LightningElement } from 'lwc';
+import { subscribe, unsubscribe } from 'lightning/empApi';
+
+export default class EventSubscriber extends LightningElement {
+    subscription = {};
+
+    connectedCallback() {
+        this.handleSubscribe();
+    }
+
+    disconnectedCallback() {
+        this.handleUnsubscribe();
+    }
+
+    handleSubscribe() {
+        const messageCallback = (response) => {
+            console.log('Event received:', response);
+        };
+
+        subscribe('/event/MyEvent__e', -1, messageCallback)
+            .then(response => {
+                this.subscription = response;
+            });
+    }
+
+    handleUnsubscribe() {
+        unsubscribe(this.subscription);
+    }
+}
+```
+
+### Timer Pattern
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class Timer extends LightningElement {
+    intervalId;
+
+    connectedCallback() {
+        this.intervalId = setInterval(() => {
+            this.updateTimer();
+        }, 1000);
+    }
+
+    disconnectedCallback() {
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+        }
+    }
+
+    updateTimer() {
+        // Update timer display
+    }
+}
+```
+
+## Best Practices
+
+- **Always clean up**: Use `disconnectedCallback()` to clean up resources created in `connectedCallback()`
+- **Guard renderedCallback()**: Use flags to prevent running expensive operations on every render
+- **Don't manipulate state in renderedCallback()**: This can cause infinite render loops
+- **Use async carefully**: Lifecycle hooks can be async, but be cautious about race conditions
+- **Error boundaries**: Implement `errorCallback()` in top-level components for better error handling
+
+## Restrictions
+
+<Note>
+You cannot access child elements in the `constructor()`. Use `connectedCallback()` or `renderedCallback()` instead.
+</Note>
+
+- Don't use `this.template.querySelector()` in `constructor()`
+- Don't perform DOM manipulations in `constructor()`
+- Don't call `super()` with parameters in the constructor
+- Don't use the `return` statement in the constructor body
+
+## Related Resources
+
+- [Public Properties](/features/public-properties)
+- [Public Methods](/features/public-methods)
+- [Light DOM](/features/light-dom)

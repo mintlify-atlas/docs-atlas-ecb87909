@@ -1,0 +1,79 @@
+---
+title: 'Hello World'
+description: 'Learn how to create your first Lightning Web Component with property binding'
+icon: 'hand-wave'
+---
+
+## Overview
+
+The Hello World component demonstrates the most fundamental concept in Lightning Web Components: **property binding**. This pattern allows you to display dynamic data by binding HTML elements to JavaScript properties.
+
+## How It Works
+
+Property binding uses curly braces `{}` syntax in your template to reference component properties. When the property value changes, the template automatically updates to reflect the new value.
+
+<Note>
+Property binding is one-way by default: data flows from the JavaScript controller to the HTML template.
+</Note>
+
+## Implementation
+
+<CodeGroup>
+
+```javascript hello.js
+import { LightningElement } from 'lwc';
+
+export default class Hello extends LightningElement {
+    greeting = 'World';
+}
+```
+
+```html hello.html
+<template>
+    <lightning-card title="Hello" icon-name="custom:custom14">
+        <div class="slds-var-m-around_medium">Hello, {greeting}!</div>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+### Component Class
+
+The JavaScript file defines a class that extends `LightningElement`:
+
+- Import `LightningElement` from the `lwc` module
+- Export a class that extends `LightningElement`
+- Define properties that can be referenced in the template
+
+### Template Binding
+
+The HTML template uses `{greeting}` to bind to the `greeting` property:
+
+- Curly braces `{}` denote a binding expression
+- The property name inside the braces must match the JavaScript property
+- The rendered output will be "Hello, World!"
+
+<Tip>
+You can bind to any property defined in your component class, including properties, getters, and even function results.
+</Tip>
+
+## What You'll See
+
+When this component renders, it displays:
+
+```
+Hello, World!
+```
+
+The `greeting` property value ('World') is automatically inserted into the template where `{greeting}` appears.
+
+## Next Steps
+
+Now that you understand basic property binding, explore:
+
+- [Data Binding](/basics/data-binding) - Two-way binding with user input
+- [Expressions](/basics/expressions) - Using getters and computed values
+- [Conditional Rendering](/basics/conditional-rendering) - Showing/hiding content dynamically

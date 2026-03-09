@@ -1,0 +1,293 @@
+---
+title: 'Iteration'
+description: 'Learn how to render lists using for:each and iterator directives'
+icon: 'list'
+---
+
+## Overview
+
+Iteration allows you to render lists of data in your Lightning Web Components. LWC provides two directives for rendering arrays: `for:each` for simple lists and `iterator` for advanced scenarios where you need access to index or first/last information.
+
+## for:each Directive
+
+The `for:each` directive is the most common way to render lists. It's simple, performant, and ideal for most use cases.
+
+### Implementation
+
+<CodeGroup>
+
+```javascript helloForEach.js
+import { LightningElement } from 'lwc';
+
+export default class HelloForEach extends LightningElement {
+    contacts = [
+        {
+            Id: '003171931112854375',
+            Name: 'Amy Taylor',
+            Title: 'VP of Engineering'
+        },
+        {
+            Id: '003192301009134555',
+            Name: 'Michael Jones',
+            Title: 'VP of Sales'
+        },
+        {
+            Id: '003848991274589432',
+            Name: 'Jennifer Wu',
+            Title: 'CEO'
+        }
+    ];
+}
+```
+
+```html helloForEach.html
+<template>
+    <lightning-card title="HelloForEach" icon-name="custom:custom14">
+        <ul class="slds-var-m-around_medium">
+            <template for:each={contacts} for:item="contact">
+                <li key={contact.Id}>{contact.Name}, {contact.Title}</li>
+            </template>
+        </ul>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+### Key Concepts for for:each
+
+#### The for:each Attribute
+
+```html
+<template for:each={contacts} for:item="contact">
+```
+
+- `for:each={contacts}` - The array to iterate over
+- `for:item="contact"` - The variable name for each item (in quotes)
+- Inside the template, access the current item using `{contact}`
+
+#### The key Attribute
+
+```html
+<li key={contact.Id}>{contact.Name}, {contact.Title}</li>
+```
+
+<Note>
+**The `key` attribute is required** for all elements inside a `for:each` loop. It must be a unique identifier for each item.
+</Note>
+
+- Helps LWC efficiently update the DOM when the list changes
+- Must be unique within the list
+- Should be stable (same item always has the same key)
+
+<Tip>
+Use a unique ID from your data (like `Id`, `recordId`, or `uuid`) rather than array indexes for the key. This ensures proper rendering when items are added, removed, or reordered.
+</Tip>
+
+### What You'll See
+
+The component renders a bulleted list:
+
+- Amy Taylor, VP of Engineering
+- Michael Jones, VP of Sales
+- Jennifer Wu, CEO
+
+## iterator Directive
+
+The `iterator` directive provides access to additional metadata about each iteration, including whether an item is first or last in the list.
+
+### Implementation
+
+<CodeGroup>
+
+```javascript helloIterator.js
+import { LightningElement } from 'lwc';
+
+export default class HelloIterator extends LightningElement {
+    contacts = [
+        {
+            Id: '003171931112854375',
+            Name: 'Amy Taylor',
+            Title: 'VP of Engineering'
+        },
+        {
+            Id: '003192301009134555',
+            Name: 'Michael Jones',
+            Title: 'VP of Sales'
+        },
+        {
+            Id: '003848991274589432',
+            Name: 'Jennifer Wu',
+            Title: 'CEO'
+        }
+    ];
+}
+```
+
+```html helloIterator.html
+<template>
+    <lightning-card title="HelloIterator" icon-name="custom:custom14">
+        <ul class="slds-var-m-around_medium">
+            <template iterator:it={contacts}>
+                <li key={it.value.Id}>
+                    <div lwc:if={it.first} class="list-first"></div>
+                    {it.value.Name}, {it.value.Title}
+                    <div lwc:if={it.last} class="list-last"></div>
+                </li>
+            </template>
+        </ul>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+### Key Concepts for iterator
+
+#### The iterator Attribute
+
+```html
+<template iterator:it={contacts}>
+```
+
+- `iterator:it={contacts}` - Creates an iterator named `it` for the `contacts` array
+- The iterator name (`it`) can be any valid identifier
+
+#### Iterator Properties
+
+The iterator object provides several properties:
+
+- `it.value` - The current item in the array
+- `it.index` - The zero-based index of the current item
+- `it.first` - `true` if this is the first item
+- `it.last` - `true` if this is the last item
+
+```html
+<li key={it.value.Id}>
+    <div lwc:if={it.first} class="list-first"></div>
+    {it.value.Name}, {it.value.Title}
+    <div lwc:if={it.last} class="list-last"></div>
+</li>
+```
+
+<Tip>
+Use `iterator` when you need to:
+- Apply special styling or behavior to the first or last item
+- Display item numbers (using `it.index`)
+- Add separators between items (except before first or after last)
+</Tip>
+
+### What You'll See
+
+The component renders a list with special markers:
+
+- (first marker) Amy Taylor, VP of Engineering
+- Michael Jones, VP of Sales
+- Jennifer Wu, CEO (last marker)
+
+## When to Use Each Directive
+
+### Use for:each when:
+
+- You have a simple list to render
+- You don't need index or first/last information
+- You want cleaner, more readable templates
+
+### Use iterator when:
+
+- You need to know if an item is first or last
+- You need the item's index
+- You want to apply special styling to boundary items
+- You need to add separators between items
+
+## Common Patterns
+
+### Nested Arrays
+
+```html
+<template for:each={categories} for:item="category">
+    <div key={category.id}>
+        <h3>{category.name}</h3>
+        <ul>
+            <template for:each={category.products} for:item="product">
+                <li key={product.id}>{product.name}</li>
+            </template>
+        </ul>
+    </div>
+</template>
+```
+
+### Conditional Items
+
+```html
+<template for:each={items} for:item="item">
+    <div key={item.id}>
+        <template lwc:if={item.isVisible}>
+            {item.name}
+        </template>
+    </div>
+</template>
+```
+
+### Item Separators
+
+```html
+<template iterator:it={items}>
+    <span key={it.value.id}>
+        {it.value.name}
+        <span lwc:if={it.last}> | </span>
+    </span>
+</template>
+```
+
+## Best Practices
+
+<Tip>
+**Always provide unique keys**: Use stable, unique identifiers from your data. Avoid using array indexes as keys unless the list never changes.
+</Tip>
+
+<Note>
+**Iterate over arrays only**: The `for:each` and `iterator` directives work only with arrays, not objects. To iterate over object properties, convert them to an array first.
+</Note>
+
+<Tip>
+**Keep templates flat**: Avoid deeply nested iterations when possible. Consider breaking complex lists into separate child components.
+</Tip>
+
+### Converting Objects to Arrays
+
+If you need to iterate over object properties:
+
+```javascript
+get itemsArray() {
+    return Object.entries(this.itemsObject).map(([key, value]) => ({
+        id: key,
+        ...value
+    }));
+}
+```
+
+```html
+<template for:each={itemsArray} for:item="item">
+    <div key={item.id}>{item.name}</div>
+</template>
+```
+
+## Performance Considerations
+
+<Tip>
+**Use `for:each` by default**: It's simpler and has slightly better performance than `iterator` for basic lists.
+</Tip>
+
+<Note>
+**Large lists**: For very large lists (1000+ items), consider:
+- Virtual scrolling or pagination
+- Lazy loading as users scroll
+- Filtering to reduce visible items
+</Note>
+
+## Next Steps
+
+- [Conditional Rendering](/basics/conditional-rendering) - Combine with iteration to show/hide items
+- [Expressions](/basics/expressions) - Compute values for list items
+- [Data Binding](/basics/data-binding) - Handle events from list items

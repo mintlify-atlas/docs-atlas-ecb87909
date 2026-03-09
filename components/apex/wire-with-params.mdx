@@ -1,0 +1,206 @@
+---
+title: Wire Apex with Parameters
+description: Call an Apex method with parameters using the @wire decorator
+---
+
+This component demonstrates how to pass parameters to an Apex method using the `@wire` decorator. It includes debouncing to optimize performance when handling user input.
+
+## Implementation
+
+<CodeGroup>
+
+```javascript apexWireMethodWithParams.js
+import { LightningElement, wire } from 'lwc';
+import findContacts from '@salesforce/apex/ContactController.findContacts';
+
+/** The delay used when debouncing event handlers before invoking Apex. */
+const DELAY = 300;
+
+export default class ApexWireMethodWithParams extends LightningElement {
+    searchKey = '';
+
+    @wire(findContacts, { searchKey: '$searchKey' })
+    contacts;
+
+    handleKeyChange(event) {
+        // Debouncing this method: Do not update the reactive property as long as this function is
+        // being called within a delay of DELAY. This is to avoid a very large number of Apex method calls.
+        window.clearTimeout(this.delayTimeout);
+        const searchKey = event.target.value;
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.delayTimeout = setTimeout(() => {
+            this.searchKey = searchKey;
+        }, DELAY);
+    }
+}
+```
+
+```html apexWireMethodWithParams.html
+<template>
+    <lightning-card
+        title="ApexWireMethodWithParams"
+        icon-name="custom:custom63"
+    >
+        <div class="slds-var-m-around_medium">
+            <lightning-input
+                type="search"
+                onchange={handleKeyChange}
+                class="slds-var-m-bottom_small"
+                label="Search"
+                value={searchKey}
+            ></lightning-input>
+            <template lwc:if={contacts.data}>
+                <template for:each={contacts.data} for:item="contact">
+                    <p key={contact.Id}>{contact.Name}</p>
+                </template>
+            </template>
+            <template lwc:elseif={contacts.error}>
+                <c-error-panel errors={contacts.error}></c-error-panel>
+            </template>
+        </div>
+
+        <c-view-source source="lwc/apexWireMethodWithParams" slot="footer">
+            Call an Apex method with parameters using @wire.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+```apex ContactController.cls
+public with sharing class ContactController {
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> findContacts(String searchKey) {
+        String key = '%' + searchKey + '%';
+        return [
+            SELECT Id, Name, Title, Phone, Email, Picture__c
+            FROM Contact
+            WHERE Name LIKE :key AND Picture__c != NULL
+            WITH USER_MODE
+            LIMIT 10
+        ];
+    }
+}
+```
+
+</CodeGroup>
+
+## Key Features
+
+### Reactive Parameters
+
+Use the `$` prefix to make parameters reactive:
+
+```javascript
+@wire(findContacts, { searchKey: '$searchKey' })
+contacts;
+```
+
+When `searchKey` changes, the wire adapter automatically calls the Apex method with the new value.
+
+### Parameter Syntax
+
+The second argument to `@wire` is an object mapping Apex parameter names to component properties:
+
+```javascript
+{ searchKey: '$searchKey' }
+//  ^           ^
+//  |           |
+//  Apex param  Component property (with $ prefix for reactivity)
+```
+
+### Debouncing
+
+Implement debouncing to reduce unnecessary Apex calls:
+
+```javascript
+const DELAY = 300;
+
+handleKeyChange(event) {
+    window.clearTimeout(this.delayTimeout);
+    const searchKey = event.target.value;
+    this.delayTimeout = setTimeout(() => {
+        this.searchKey = searchKey;
+    }, DELAY);
+}
+```
+
+This ensures the Apex method is only called after the user stops typing for 300ms.
+
+### Search Pattern
+
+The Apex method uses SOQL's LIKE operator for partial matching:
+
+```apex
+String key = '%' + searchKey + '%';
+return [
+    SELECT Id, Name, Title, Phone, Email, Picture__c
+    FROM Contact
+    WHERE Name LIKE :key AND Picture__c != NULL
+    WITH USER_MODE
+    LIMIT 10
+];
+```
+
+## Parameters
+
+### Component Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `searchKey` | String | The search term for filtering contacts |
+| `contacts` | Object | Wire adapter result with `data` and `error` |
+| `delayTimeout` | Number | Timeout ID for debouncing |
+
+### Apex Method Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `searchKey` | String | Search term to filter contacts by name |
+
+## Performance Optimization
+
+### Why Debounce?
+
+Without debouncing, typing "John" would trigger 4 Apex calls:
+- "J"
+- "Jo"
+- "Joh"
+- "John"
+
+With debouncing, only 1 call is made after typing stops.
+
+### Debounce Configuration
+
+```javascript
+const DELAY = 300; // milliseconds
+```
+
+Adjust the delay based on your needs:
+- Lower (100-200ms): More responsive, more server calls
+- Higher (500-1000ms): Fewer server calls, less responsive
+
+## Error Handling
+
+Errors are automatically handled through the wire adapter:
+
+```html
+<template lwc:elseif={contacts.error}>
+    <c-error-panel errors={contacts.error}></c-error-panel>
+</template>
+```
+
+## When to Use
+
+Use this pattern when:
+- You need to pass parameters to an Apex method
+- Parameters change based on user input
+- You want automatic re-execution when parameters change
+- You need search or filter functionality
+
+## Best Practices
+
+1. Always use debouncing for text input
+2. Use the `$` prefix for reactive parameters
+3. Set appropriate LIMIT in SOQL queries
+4. Include WITH USER_MODE for security
+5. Clear timeout on component destroy if needed

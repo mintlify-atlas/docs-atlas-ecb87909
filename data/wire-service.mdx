@@ -1,0 +1,187 @@
+---
+title: Wire Service
+description: Use the @wire decorator to retrieve and bind data reactively to your Lightning Web Components
+---
+
+The Wire Service provisions an immutable stream of data to a component. It's the most efficient way to read Salesforce data because it supports reactive parameters and automatic caching.
+
+## Wire Adapters
+
+Wire adapters are functions that provide data to your components. Salesforce provides built-in wire adapters for UI API and custom Apex methods.
+
+### getRecord Wire Adapter
+
+Retrieves a single record with specified fields.
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { getRecord } from 'lightning/uiRecordApi';
+import NAME_FIELD from '@salesforce/schema/User.Name';
+import EMAIL_FIELD from '@salesforce/schema/User.Email';
+import Id from '@salesforce/user/Id';
+
+export default class WireGetRecord extends LightningElement {
+    userId = Id;
+
+    @wire(getRecord, {
+        recordId: '$userId',
+        fields: [NAME_FIELD],
+        optionalFields: [EMAIL_FIELD]
+    })
+    record;
+
+    get recordStr() {
+        return this.record ? JSON.stringify(this.record.data, null, 2) : '';
+    }
+}
+```
+
+#### Parameters
+
+- **recordId** (String): The record ID (prefixed with `$` for reactive binding)
+- **fields** (Array): Required fields to retrieve
+- **optionalFields** (Array): Optional fields to retrieve (won't cause errors if unavailable)
+
+#### Return Value
+
+Returns an object with:
+- **data**: The record object with requested fields
+- **error**: Error information if the request fails
+
+### getRecords Wire Adapter
+
+Retrieves multiple records in a single request.
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { getRecords } from 'lightning/uiRecordApi';
+import NAME_FIELD from '@salesforce/schema/Contact.Name';
+import EMAIL_FIELD from '@salesforce/schema/Contact.Email';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class WireGetRecords extends LightningElement {
+    records;
+
+    @wire(getContactList)
+    wiredContacts({ error, data }) {
+        if (data) {
+            this.records = [
+                {
+                    recordIds: [data[0].Id, data[1].Id],
+                    fields: [NAME_FIELD],
+                    optionalFields: [EMAIL_FIELD]
+                }
+            ];
+            this.error = undefined;
+        } else if (error) {
+            this.error = error;
+        }
+    }
+
+    @wire(getRecords, {
+        records: '$records'
+    })
+    recordResults;
+
+    get recordStr() {
+        return this.recordResults
+            ? JSON.stringify(this.recordResults.data, null, 2)
+            : '';
+    }
+}
+```
+
+#### Parameters
+
+- **records** (Array): Array of record configurations, each containing:
+  - **recordIds** (Array): Array of record IDs to retrieve
+  - **fields** (Array): Required fields for these records
+  - **optionalFields** (Array): Optional fields for these records
+
+#### Return Value
+
+Returns an object containing:
+- **data**: Object with `results` array containing each record's data
+- **error**: Error information if any request fails
+
+## Reactive Parameters
+
+Prefix properties with `$` to make them reactive. The wire service automatically re-executes when reactive parameters change.
+
+<Tabs>
+  <Tab title="Static Parameter">
+    ```javascript
+    @wire(getRecord, {
+        recordId: '003...',
+        fields: [NAME_FIELD]
+    })
+    record;
+    ```
+    The wire service calls once with a fixed record ID.
+  </Tab>
+  <Tab title="Reactive Parameter">
+    ```javascript
+    recordId = '003...';
+    
+    @wire(getRecord, {
+        recordId: '$recordId',
+        fields: [NAME_FIELD]
+    })
+    record;
+    ```
+    The wire service automatically re-calls when `this.recordId` changes.
+  </Tab>
+</Tabs>
+
+## Wire to Property vs Function
+
+<Tabs>
+  <Tab title="Wire to Property">
+    ```javascript
+    @wire(getContactList) contacts;
+    ```
+    
+    **Use when:**
+    - You only need to display the data
+    - You don't need to process the results
+    
+    **Access data:** `this.contacts.data`
+  </Tab>
+  <Tab title="Wire to Function">
+    ```javascript
+    @wire(getContactList)
+    wiredContacts({ error, data }) {
+        if (data) {
+            this.contacts = data;
+            this.error = undefined;
+        } else if (error) {
+            this.error = error;
+        }
+    }
+    ```
+    
+    **Use when:**
+    - You need to transform the data
+    - You need to set multiple properties
+    - You need custom error handling
+    
+    **Access data:** `this.contacts` (already unwrapped)
+  </Tab>
+</Tabs>
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Reactive" icon="bolt">
+    Automatically updates when parameters change
+  </Card>
+  <Card title="Cached" icon="server">
+    Shares data across components and reduces server calls
+  </Card>
+  <Card title="Declarative" icon="wand-magic-sparkles">
+    No manual API calls or lifecycle management needed
+  </Card>
+  <Card title="Immutable" icon="lock">
+    Data is read-only, ensuring predictable state management
+  </Card>
+</CardGroup>

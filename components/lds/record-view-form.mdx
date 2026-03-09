@@ -1,0 +1,135 @@
+---
+title: lightning-record-view-form
+description: Display a read-only record with custom layout control using Lightning Data Service
+---
+
+`lightning-record-view-form` displays record data in read-only mode with full layout control. Use it when you need to create custom read-only views of record data.
+
+## Usage
+
+### Static Field Definition
+
+Import field schema references and expose them to the template:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+import ACCOUNT_FIELD from '@salesforce/schema/Contact.AccountId';
+import NAME_FIELD from '@salesforce/schema/Contact.Name';
+import TITLE_FIELD from '@salesforce/schema/Contact.Title';
+import PHONE_FIELD from '@salesforce/schema/Contact.Phone';
+import EMAIL_FIELD from '@salesforce/schema/Contact.Email';
+
+export default class RecordViewFormStaticContact extends LightningElement {
+    accountField = ACCOUNT_FIELD;
+    nameField = NAME_FIELD;
+    titleField = TITLE_FIELD;
+    phoneField = PHONE_FIELD;
+    emailField = EMAIL_FIELD;
+
+    @api recordId;
+    @api objectApiName;
+}
+```
+
+```html
+<template>
+    <lightning-record-view-form
+        object-api-name={objectApiName}
+        record-id={recordId}
+    >
+        <lightning-output-field field-name={accountField}></lightning-output-field>
+        <lightning-output-field field-name={nameField}></lightning-output-field>
+        <lightning-output-field field-name={titleField}></lightning-output-field>
+        <lightning-output-field field-name={phoneField}></lightning-output-field>
+        <lightning-output-field field-name={emailField}></lightning-output-field>
+    </lightning-record-view-form>
+</template>
+```
+
+### Dynamic Field Definition
+
+Specify field names directly as strings:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class RecordViewFormDynamicContact extends LightningElement {
+    @api recordId;
+    @api objectApiName;
+}
+```
+
+```html
+<template>
+    <lightning-record-view-form
+        object-api-name={objectApiName}
+        record-id={recordId}
+    >
+        <lightning-output-field field-name="AccountId"></lightning-output-field>
+        <lightning-output-field field-name="Name"></lightning-output-field>
+        <lightning-output-field field-name="Title"></lightning-output-field>
+        <lightning-output-field field-name="Phone"></lightning-output-field>
+        <lightning-output-field field-name="Email"></lightning-output-field>
+    </lightning-record-view-form>
+</template>
+```
+
+## Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `object-api-name` | String | Yes | API name of the object (e.g., 'Contact', 'Account') |
+| `record-id` | String | Yes | ID of the record to display |
+| `density` | String | No | Display density: 'compact', 'comfy', or 'auto' (default) |
+
+## Child Components
+
+### lightning-output-field
+
+Renders a read-only field with automatic formatting:
+
+```html
+<lightning-output-field
+    field-name="Name"
+    variant="label-inline"
+></lightning-output-field>
+```
+
+**Attributes:**
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `field-name` | String or FieldId | Field API name or schema reference |
+| `variant` | String | Display variant: 'standard' (default) or 'label-inline' |
+
+## Events
+
+| Event | Description | Detail |
+|-------|-------------|--------|
+| `load` | Fired when the record data is loaded | `{ records }` |
+| `error` | Fired when an error occurs loading the record | `{ detail }` |
+
+## Features
+
+- **Custom Layout**: Full control over field placement and grouping
+- **Automatic Formatting**: Fields are formatted based on their type
+- **Lightning Data Service**: Leverages LDS caching for performance
+- **Read-only**: No editing capabilities, pure display mode
+- **Responsive**: Adapts to different screen sizes
+
+<Warning>
+  `lightning-record-view-form` requires a valid `record-id`. Unlike `lightning-record-edit-form`, it cannot be used to create new records.
+</Warning>
+
+## Use Cases
+
+- **Custom Detail Pages**: Create custom layouts for record detail views
+- **Related Record Display**: Show related record information
+- **Dashboard Widgets**: Display key record data in dashboards
+- **Summary Panels**: Show record summaries in custom applications
+
+## Related Components
+
+- [lightning-record-form](/components/lds/record-form) - For automatic layout with edit capabilities
+- [lightning-record-edit-form](/components/lds/record-edit-form) - For custom edit layouts

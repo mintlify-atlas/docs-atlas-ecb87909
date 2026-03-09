@@ -1,0 +1,171 @@
+---
+title: getPicklistValues
+description: Wire adapters for retrieving picklist field values
+---
+
+Wire adapters for retrieving picklist values for specific fields or all picklists on an object by record type.
+
+## getPicklistValues
+
+Retrieves picklist values for a specific field.
+
+### Import
+
+```javascript
+import { getPicklistValues } from 'lightning/uiObjectInfoApi';
+```
+
+### Parameters
+
+<ParamField path="recordTypeId" type="string" required>
+  The record type ID. Use `'012000000000000AAA'` for the master record type.
+</ParamField>
+
+<ParamField path="fieldApiName" type="FieldId" required>
+  The field API name as a field reference from `@salesforce/schema`.
+</ParamField>
+
+### Basic Usage
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { getPicklistValues } from 'lightning/uiObjectInfoApi';
+import TYPE_FIELD from '@salesforce/schema/Account.Type';
+
+export default class WireGetPicklistValues extends LightningElement {
+    @wire(getPicklistValues, {
+        recordTypeId: '012000000000000AAA',
+        fieldApiName: TYPE_FIELD
+    })
+    picklistValues;
+}
+```
+
+### Response Format
+
+The wire adapter returns:
+
+```javascript
+{
+    values: [
+        {
+            label: 'Display Label',
+            value: 'API_Value',
+            validFor: [],
+            attributes: null
+        }
+    ],
+    defaultValue: null,
+    controllerValues: {}
+}
+```
+
+## getPicklistValuesByRecordType
+
+Retrieves all picklist field values for an object by record type.
+
+### Import
+
+```javascript
+import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
+```
+
+### Parameters
+
+<ParamField path="objectApiName" type="string" required>
+  The API name of the object.
+</ParamField>
+
+<ParamField path="recordTypeId" type="string" required>
+  The record type ID. Use `'012000000000000AAA'` for the master record type.
+</ParamField>
+
+### Basic Usage
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
+import ACCOUNT_RECORD from '@salesforce/schema/Account';
+
+export default class WireGetPicklistValuesByRecordType extends LightningElement {
+    treeModel;
+    error;
+
+    @wire(getPicklistValuesByRecordType, {
+        objectApiName: ACCOUNT_RECORD,
+        recordTypeId: '012000000000000AAA'
+    })
+    wiredValues({ error, data }) {
+        if (data) {
+            this.treeModel = this.buildTreeModel(data.picklistFieldValues);
+            this.error = undefined;
+        } else {
+            this.error = error;
+            this.treeModel = undefined;
+        }
+    }
+
+    buildTreeModel(picklistValues) {
+        const treeNodes = [];
+        Object.keys(picklistValues).forEach((picklist) => {
+            treeNodes.push({
+                label: picklist,
+                items: picklistValues[picklist].values.map((item) => ({
+                    label: item.label,
+                    name: item.value
+                }))
+            });
+        });
+        return treeNodes;
+    }
+}
+```
+
+### Response Format
+
+The wire adapter returns:
+
+```javascript
+{
+    picklistFieldValues: {
+        FieldApiName: {
+            values: [...],
+            defaultValue: null,
+            controllerValues: {}
+        }
+    }
+}
+```
+
+## Master Record Type
+
+Use the ID `'012000000000000AAA'` to retrieve picklist values for the master record type:
+
+```javascript
+@wire(getPicklistValues, {
+    recordTypeId: '012000000000000AAA',  // Master record type
+    fieldApiName: TYPE_FIELD
+})
+picklistValues;
+```
+
+## Reactive Parameters
+
+Make parameters reactive using the `$` prefix:
+
+```javascript
+export default class Example extends LightningElement {
+    recordTypeId = '012000000000000AAA';
+
+    @wire(getPicklistValues, {
+        recordTypeId: '$recordTypeId',
+        fieldApiName: TYPE_FIELD
+    })
+    picklistValues;
+}
+```
+
+## Source Examples
+
+- `wireGetPicklistValues` - Single field picklist values
+- `wireGetPicklistValuesByRecordType` - All picklists for a record type

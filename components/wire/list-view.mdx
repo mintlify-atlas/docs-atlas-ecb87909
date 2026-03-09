@@ -1,0 +1,174 @@
+---
+title: getListUi
+description: Wire adapter to retrieve list view data and metadata
+---
+
+The `getListUi` wire adapter retrieves records and metadata for a Salesforce list view.
+
+## Import
+
+```javascript
+import { getListUi } from 'lightning/uiListApi';
+```
+
+## Parameters
+
+<ParamField path="objectApiName" type="string" required>
+  The API name of the object for the list view.
+</ParamField>
+
+<ParamField path="listViewApiName" type="string" required>
+  The API name (developer name) of the list view.
+</ParamField>
+
+<ParamField path="sortBy" type="FieldId">
+  Field to sort by. Can be a field reference from `@salesforce/schema`.
+</ParamField>
+
+<ParamField path="pageSize" type="number">
+  Number of records to retrieve per page. Default is 50, maximum is 2000.
+</ParamField>
+
+<ParamField path="pageToken" type="string">
+  Token for pagination to retrieve the next or previous page.
+</ParamField>
+
+## Basic Usage
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { getListUi } from 'lightning/uiListApi';
+
+import CONTACT_OBJECT from '@salesforce/schema/Contact';
+import NAME_FIELD from '@salesforce/schema/Contact.Name';
+
+export default class WireListView extends LightningElement {
+    @wire(getListUi, {
+        objectApiName: CONTACT_OBJECT,
+        listViewApiName: 'All_Recipes_Contacts',
+        sortBy: NAME_FIELD,
+        pageSize: 10
+    })
+    listView;
+
+    get contacts() {
+        return this.listView.data.records.records;
+    }
+}
+```
+
+## Using Schema References
+
+Import object and field references for type safety:
+
+```javascript
+import CONTACT_OBJECT from '@salesforce/schema/Contact';
+import NAME_FIELD from '@salesforce/schema/Contact.Name';
+
+@wire(getListUi, {
+    objectApiName: CONTACT_OBJECT,
+    listViewApiName: 'All_Recipes_Contacts',
+    sortBy: NAME_FIELD,
+    pageSize: 10
+})
+listView;
+```
+
+## Response Data
+
+The wire adapter returns:
+
+```javascript
+{
+    records: {
+        records: [...],  // Array of record data
+        count: 10,
+        currentPageToken: null,
+        currentPageUrl: '...',
+        nextPageToken: '...',
+        nextPageUrl: '...',
+        previousPageToken: null,
+        previousPageUrl: null
+    },
+    info: {
+        displayColumns: [...],
+        filterLogicString: null,
+        filteredByInfo: [...],
+        label: 'List View Label',
+        listReference: {...},
+        orderedByInfo: [...]
+    }
+}
+```
+
+## Accessing Records
+
+```javascript
+get contacts() {
+    return this.listView.data?.records.records || [];
+}
+```
+
+## Pagination
+
+Use page tokens to navigate through results:
+
+```javascript
+export default class PaginatedListView extends LightningElement {
+    pageToken = null;
+
+    @wire(getListUi, {
+        objectApiName: CONTACT_OBJECT,
+        listViewApiName: 'All_Recipes_Contacts',
+        pageSize: 10,
+        pageToken: '$pageToken'
+    })
+    listView;
+
+    handleNext() {
+        if (this.listView.data?.records.nextPageToken) {
+            this.pageToken = this.listView.data.records.nextPageToken;
+        }
+    }
+
+    handlePrevious() {
+        if (this.listView.data?.records.previousPageToken) {
+            this.pageToken = this.listView.data.records.previousPageToken;
+        }
+    }
+}
+```
+
+## Reactive Parameters
+
+Make parameters reactive using the `$` prefix:
+
+```javascript
+export default class DynamicListView extends LightningElement {
+    listViewName = 'All_Recipes_Contacts';
+
+    @wire(getListUi, {
+        objectApiName: CONTACT_OBJECT,
+        listViewApiName: '$listViewName',
+        pageSize: 10
+    })
+    listView;
+}
+```
+
+## List View API Names
+
+To find list view API names:
+
+1. Navigate to the list view in Salesforce
+2. Check the URL for the list view ID
+3. Use the developer name (API name) of the list view
+
+Common list view API names:
+- `AllAccounts`
+- `MyAccounts`
+- `RecentlyViewedAccounts`
+
+## Source Examples
+
+- `wireListView` - Basic list view with sorting and page size

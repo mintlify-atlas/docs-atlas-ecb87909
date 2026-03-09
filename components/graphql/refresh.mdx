@@ -1,0 +1,220 @@
+---
+title: GraphQL Refresh
+description: Refresh a GraphQL query @wire result
+---
+
+## Overview
+
+The `graphqlRefresh` component demonstrates how to programmatically refresh a GraphQL query result. It stores a reference to the refresh function and calls it to reload data after external changes.
+
+## Source
+
+`force-app/main/default/lwc/graphqlRefresh`
+
+## Key Features
+
+- Manual query refresh using the `refresh` function
+- Storing refresh function reference
+- Wire adapter callback pattern
+- Loading state management
+- Integration with Apex for data updates
+
+## Wire Adapter with Callback
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { gql, graphql } from 'lightning/graphql';
+
+export default class GraphqlRefresh extends LightningElement {
+    graphqlResult;
+    account;
+    errors;
+    isLoading = true;
+    refreshGraphQL;
+
+    @wire(graphql, {
+        query: gql`
+            query getAccount {
+                uiapi {
+                    query {
+                        Account(
+                            where: { Name: { eq: "Alpha Dynamics" } }
+                            first: 1
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Name {
+                                        value
+                                    }
+                                    NumberOfEmployees {
+                                        value
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    wiredValues(result) {
+        this.isLoading = false;
+        this.account = undefined;
+        this.errors = undefined;
+
+        const { errors, data, refresh } = result;
+        // Store reference to refresh function
+        if (refresh) {
+            this.refreshGraphQL = refresh;
+        }
+        if (data) {
+            const accounts = data.uiapi.query.Account.edges.map((edge) => ({
+                Id: edge.node.Id,
+                Name: edge.node.Name.value,
+                NumberOfEmployees: edge.node.NumberOfEmployees.value
+            }));
+            this.account = accounts[0];
+        }
+        if (errors) {
+            this.errors = errors;
+        }
+    }
+}
+```
+
+## Storing the Refresh Function
+
+Capture the `refresh` function from the wire adapter result:
+
+```javascript
+const { errors, data, refresh } = result;
+if (refresh) {
+    this.refreshGraphQL = refresh;
+}
+```
+
+The refresh function is provided by the wire adapter and can be called to re-execute the query.
+
+## Wire Adapter Callback Pattern
+
+Use a method instead of a property to receive the wire adapter result:
+
+```javascript
+@wire(graphql, { query: gql`...` })
+wiredValues(result) {
+    const { errors, data, refresh } = result;
+    // Process result
+}
+```
+
+This pattern allows access to the `refresh` function and manual control over data processing.
+
+## Calling the Refresh Function
+
+Invoke the stored refresh function to reload data:
+
+```javascript
+async handleRefreshClick() {
+    this.isLoading = true;
+    try {
+        await this.refreshGraphQL?.();
+    } catch (e) {
+        this.errors = e;
+    } finally {
+        this.isLoading = false;
+    }
+}
+```
+
+The optional chaining operator `?.()` safely handles cases where the refresh function might not be available.
+
+## Use Case: External Data Updates
+
+Refresh is useful when data changes outside the component's GraphQL query:
+
+```javascript
+import randomizeAccountData from '@salesforce/apex/AccountController.randomizeAccountData';
+
+async handleRandomizeClick() {
+    this.isLoading = true;
+    try {
+        // Update data via Apex
+        await randomizeAccountData({ accountId: this.account.Id });
+    } catch (e) {
+        this.errors = e;
+    } finally {
+        this.isLoading = false;
+    }
+}
+```
+
+After updating data with Apex, call `refreshGraphQL()` to reload the query result.
+
+## Loading State Management
+
+Track loading state during refresh operations:
+
+```javascript
+isLoading = true;
+
+wiredValues(result) {
+    this.isLoading = false;
+    // Process result
+}
+
+async handleRefreshClick() {
+    this.isLoading = true;
+    try {
+        await this.refreshGraphQL?.();
+    } finally {
+        this.isLoading = false; // Will be set to false again in wiredValues
+    }
+}
+```
+
+## Template with Loading Spinner
+
+```html
+<lightning-spinner
+    lwc:if={isLoading}
+    alternative-text="Loading"
+    size="small"
+    variant="brand"
+></lightning-spinner>
+
+<div lwc:if={account}>
+    <div class="account-info">
+        The {account.Name} account has {account.NumberOfEmployees} employees.
+    </div>
+    <lightning-button
+        label="Randomize record data"
+        onclick={handleRandomizeClick}
+    ></lightning-button>
+    <lightning-button
+        label="Refresh GraphQL query"
+        onclick={handleRefreshClick}
+    ></lightning-button>
+</div>
+```
+
+## Refresh Pattern Summary
+
+1. Use wire adapter callback pattern to access the result object
+2. Destructure `refresh` function from the result
+3. Store refresh function in a component property
+4. Call the stored function to re-execute the query
+5. Handle loading state during refresh operations
+
+## When to Use Refresh
+
+- After making data changes via Apex or imperative calls
+- When polling for updated data
+- After record mutations outside the GraphQL query
+- When implementing manual reload functionality
+
+## See Also
+
+- [GraphQL Variables](/components/graphql/variables)
+- [GraphQL Contacts](/components/graphql/basic-query)
+- [GraphQL Pagination](/components/graphql/pagination)

@@ -1,0 +1,405 @@
+---
+title: Lightning App Builder Integration
+description: Expose components in Lightning App Builder with configurable properties
+---
+
+Lightning App Builder allows administrators to build custom pages by dragging and dropping components. By exposing your Lightning Web Components in App Builder, you can make them configurable without requiring code changes.
+
+## Overview
+
+To make a component available in Lightning App Builder, you need to:
+
+1. Mark the component as exposed in the metadata file
+2. Specify target contexts (App Page, Home Page, Record Page, etc.)
+3. Define configurable properties using `@api`
+4. Configure property types and options in the metadata
+
+## Basic Configuration
+
+### Component with @api Properties
+
+**compositionWithAppBuilder.js**
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class CompositionWithAppBuilder extends LightningElement {
+    @api picklistValue;
+    @api stringValue;
+    @api numberValue;
+}
+```
+
+**compositionWithAppBuilder.html**
+```html
+<template>
+    <lightning-card
+        title="CompositionWithAppBuilder"
+        icon-name="custom:custom57"
+    >
+        <div class="slds-var-m-around_medium">
+            Properties from App Builder:
+            <div class="slds-box slds-box_x-small">
+                <p>picklistValue: {picklistValue}</p>
+                <p>stringValue: {stringValue}</p>
+                <p>numberValue: {numberValue}</p>
+            </div>
+        </div>
+    </lightning-card>
+</template>
+```
+
+### Metadata Configuration
+
+**compositionWithAppBuilder.js-meta.xml**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle
+    xmlns="http://soap.sforce.com/2006/04/metadata"
+    fqn="compositionWithAppBuilder"
+>
+    <apiVersion>65.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage, lightning__HomePage">
+            <property
+                name="picklistValue"
+                type="String"
+                datasource="Option One, Option Two, Option Three"
+            />
+            <property
+                name="stringValue"
+                type="String"
+                placeholder="Type something here..."
+            />
+            <property
+                name="numberValue"
+                type="Integer"
+                min="0"
+                max="100"
+                default="10"
+            />
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>
+```
+
+## Metadata Elements
+
+### Required Elements
+
+<Steps>
+  <Step title="Set isExposed to true">
+    This makes the component visible in App Builder's component palette
+    
+    ```xml
+    <isExposed>true</isExposed>
+    ```
+  </Step>
+  
+  <Step title="Define targets">
+    Specify where the component can be used
+    
+    ```xml
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__RecordPage</target>
+    </targets>
+    ```
+  </Step>
+  
+  <Step title="Configure properties">
+    Define which properties are configurable and their input types
+    
+    ```xml
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage">
+            <property name="title" type="String" />
+        </targetConfig>
+    </targetConfigs>
+    ```
+  </Step>
+</Steps>
+
+### Available Targets
+
+| Target | Description |
+|--------|-------------|
+| `lightning__AppPage` | Custom app pages |
+| `lightning__HomePage` | Home pages |
+| `lightning__RecordPage` | Record detail pages |
+| `lightning__Tab` | Custom tabs |
+| `lightningCommunity__Page` | Experience Cloud pages |
+| `lightningCommunity__Default` | Experience Cloud themes |
+
+## Property Types
+
+App Builder supports various property types for configuration:
+
+### String
+
+Simple text input:
+
+```xml
+<property
+    name="stringValue"
+    type="String"
+    label="Text Input"
+    description="Enter any text value"
+    placeholder="Type something here..."
+    default="Default value"
+/>
+```
+
+### String with Picklist
+
+Dropdown selection using `datasource`:
+
+```xml
+<property
+    name="picklistValue"
+    type="String"
+    label="Select Option"
+    datasource="Option One, Option Two, Option Three"
+    default="Option One"
+/>
+```
+
+### Integer
+
+Numeric input with optional min/max constraints:
+
+```xml
+<property
+    name="numberValue"
+    type="Integer"
+    label="Number"
+    description="Enter a number between 0 and 100"
+    min="0"
+    max="100"
+    default="10"
+/>
+```
+
+### Boolean
+
+Checkbox input:
+
+```xml
+<property
+    name="showDetails"
+    type="Boolean"
+    label="Show Details"
+    default="true"
+/>
+```
+
+### Additional Types
+
+| Type | Use Case | Example |
+|------|----------|----------|
+| `Color` | Color picker | Background colors, themes |
+| `Date` | Date selector | Default date values |
+| `DateTime` | Date and time selector | Appointment times |
+| `Object` | Complex object selector | Record IDs, references |
+
+## Property Attributes
+
+### Common Attributes
+
+```xml
+<property
+    name="propertyName"           <!-- JavaScript property name -->
+    type="String"                 <!-- Data type -->
+    label="Display Label"         <!-- Label shown in App Builder -->
+    description="Help text"       <!-- Tooltip description -->
+    default="Default value"       <!-- Default value -->
+    required="true"               <!-- Make field required -->
+    placeholder="Placeholder"     <!-- Input placeholder text -->
+/>
+```
+
+### Type-Specific Attributes
+
+**String with datasource:**
+```xml
+<property
+    name="picklistValue"
+    type="String"
+    datasource="Value1, Value2, Value3"
+/>
+```
+
+**Integer with constraints:**
+```xml
+<property
+    name="numberValue"
+    type="Integer"
+    min="0"
+    max="100"
+/>
+```
+
+## Using Component Properties
+
+Once configured in App Builder, the property values are automatically passed to your component:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class MyComponent extends LightningElement {
+    @api title;
+    @api showDetails;
+    @api maxItems;
+    
+    get displayTitle() {
+        return this.title || 'Default Title';
+    }
+    
+    connectedCallback() {
+        console.log('Max items:', this.maxItems);
+    }
+}
+```
+
+```html
+<template>
+    <lightning-card title={displayTitle}>
+        <template lwc:if={showDetails}>
+            <!-- Detailed view -->
+        </template>
+    </lightning-card>
+</template>
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Provide sensible defaults">
+    Always set default values so the component works out-of-the-box
+    
+    ```xml
+    <property
+        name="maxRecords"
+        type="Integer"
+        default="10"
+    />
+    ```
+  </Step>
+  
+  <Step title="Use clear labels and descriptions">
+    Help administrators understand what each property does
+    
+    ```xml
+    <property
+        name="showAvatar"
+        type="Boolean"
+        label="Show User Avatar"
+        description="Display profile pictures next to user names"
+    />
+    ```
+  </Step>
+  
+  <Step title="Validate property values">
+    Don't assume properties will always be valid
+    
+    ```javascript
+    @api maxItems;
+    
+    get validatedMaxItems() {
+        const value = parseInt(this.maxItems, 10);
+        return (value > 0 && value <= 100) ? value : 10;
+    }
+    ```
+  </Step>
+  
+  <Step title="Group related properties">
+    Use consistent naming and organize properties logically
+    
+    ```xml
+    <!-- Display settings -->
+    <property name="showTitle" type="Boolean" />
+    <property name="showDescription" type="Boolean" />
+    <property name="showImage" type="Boolean" />
+    
+    <!-- Behavior settings -->
+    <property name="enableAutoRefresh" type="Boolean" />
+    <property name="refreshInterval" type="Integer" />
+    ```
+  </Step>
+</Steps>
+
+## Testing in App Builder
+
+<Steps>
+  <Step title="Deploy your component">
+    Push the component and metadata to your org
+    
+    ```bash
+    sf project deploy start
+    ```
+  </Step>
+  
+  <Step title="Open Lightning App Builder">
+    Navigate to Setup > Lightning App Builder
+  </Step>
+  
+  <Step title="Create or edit a page">
+    Choose the appropriate page type matching your target configuration
+  </Step>
+  
+  <Step title="Find your component">
+    Look for your component in the Custom components section
+  </Step>
+  
+  <Step title="Drag and configure">
+    Drag the component onto the page and test the property inputs
+  </Step>
+  
+  <Step title="Save and activate">
+    Save your page and activate it for users
+  </Step>
+</Steps>
+
+## Advanced: Object and Record Context
+
+For Record Pages, you can access the current record's context:
+
+```xml
+<targetConfigs>
+    <targetConfig targets="lightning__RecordPage">
+        <objects>
+            <object>Contact</object>
+            <object>Account</object>
+        </objects>
+    </targetConfig>
+</targetConfigs>
+```
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class RecordPageComponent extends LightningElement {
+    @api recordId;      // Automatically populated
+    @api objectApiName; // Automatically populated
+}
+```
+
+<Note>
+  When using `lightning__RecordPage`, the `recordId` and `objectApiName` properties are automatically provided by the framework.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Composition Overview" icon="layer-group" href="./overview">
+    Review component composition fundamentals
+  </Card>
+  <Card title="Wire Service" icon="plug" href="/data/wire-service">
+    Learn how to fetch and display Salesforce data
+  </Card>
+</CardGroup>

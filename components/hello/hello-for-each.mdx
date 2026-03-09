@@ -1,0 +1,109 @@
+---
+title: 'Hello For Each'
+description: 'Iterating over arrays with the for:each directive'
+---
+
+## Overview
+
+The `helloForEach` component demonstrates how to iterate over arrays in Lightning Web Components using the `for:each` directive. This is the most common way to render lists of data in LWC templates.
+
+## What It Does
+
+This component displays a list of contacts by iterating over an array of contact objects. Each contact's name and title are rendered in a list item, demonstrating how to loop through data and access object properties in templates.
+
+## Component Code
+
+<CodeGroup>
+
+```javascript helloForEach.js
+import { LightningElement } from 'lwc';
+
+export default class HelloForEach extends LightningElement {
+    contacts = [
+        {
+            Id: '003171931112854375',
+            Name: 'Amy Taylor',
+            Title: 'VP of Engineering'
+        },
+        {
+            Id: '003192301009134555',
+            Name: 'Michael Jones',
+            Title: 'VP of Sales'
+        },
+        {
+            Id: '003848991274589432',
+            Name: 'Jennifer Wu',
+            Title: 'CEO'
+        }
+    ];
+}
+```
+
+```html helloForEach.html
+<template>
+    <lightning-card title="HelloForEach" icon-name="custom:custom14">
+        <ul class="slds-var-m-around_medium">
+            <template for:each={contacts} for:item="contact">
+                <li key={contact.Id}>{contact.Name}, {contact.Title}</li>
+            </template>
+        </ul>
+        <c-view-source source="lwc/helloForEach" slot="footer">
+            Loop through an array of items in a template.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+- **for:each Directive**: Iterates over an array of items
+- **for:item**: Defines the variable name for the current iteration item
+- **key Attribute**: Required unique identifier for each list item (improves rendering performance)
+- **Array of Objects**: Demonstrates accessing properties of objects within an array
+- **Template Tag**: The `for:each` directive must be used on a `<template>` tag
+
+## How It Works
+
+1. The `contacts` array contains three contact objects
+2. The `for:each` directive loops through each contact in the array
+3. For each iteration, the current contact is accessible via the `contact` variable
+4. The `key` attribute uses `contact.Id` to uniquely identify each list item
+5. Each contact's `Name` and `Title` properties are displayed
+
+## Important Requirements
+
+- **key attribute is mandatory**: Every element in a `for:each` loop must have a unique `key`
+- **Use stable identifiers**: Keys should be stable and unique (like IDs), not array indices
+- **Template wrapper**: The `for:each` directive must be on a `<template>` tag
+
+## Usage Example
+
+To use this component in your Salesforce org:
+
+```html
+<c-hello-for-each></c-hello-for-each>
+```
+
+The component will render:
+```
+• Amy Taylor, VP of Engineering
+• Michael Jones, VP of Sales
+• Jennifer Wu, CEO
+```
+
+## When to Use for:each
+
+Use `for:each` when:
+- You need to render a simple list of items
+- You don't need access to first/last item information
+- You want straightforward iteration without additional metadata
+
+For more advanced iteration needs (like knowing if an item is first or last), see the [Hello Iterator](/components/hello/hello-iterator) component.
+
+## Source Code
+
+View the complete source code on GitHub:
+- [helloForEach.js](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloForEach/helloForEach.js)
+- [helloForEach.html](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloForEach/helloForEach.html)

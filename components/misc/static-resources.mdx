@@ -1,0 +1,200 @@
+---
+title: Static Resources
+description: Use static resources in Lightning Web Components
+---
+
+## Overview
+
+The `miscStaticResource` component demonstrates how to reference and use static resources in Lightning Web Components, including individual files and files within archive packages.
+
+## Source Component
+
+- **miscStaticResource** - Displays images from static resources
+
+## Key Features
+
+- Import static resources by name
+- Reference individual files
+- Access files within archive packages (ZIP)
+- Type-safe resource URLs
+
+## Implementation
+
+### Importing Static Resources
+
+Import static resources using the `@salesforce/resourceUrl` module:
+
+```javascript
+import { LightningElement } from 'lwc';
+import trailheadLogo from '@salesforce/resourceUrl/trailhead_logo';
+import trailheadCharacters from '@salesforce/resourceUrl/trailhead_characters';
+
+export default class MiscStaticResource extends LightningElement {
+    // Direct file reference
+    trailheadLogoUrl = trailheadLogo;
+
+    // File within an archive
+    einsteinUrl = trailheadCharacters + '/images/einstein.png';
+}
+```
+
+### Using in Templates
+
+Reference the imported URLs in your template:
+
+```html
+<template>
+    <img src={trailheadLogoUrl} alt="Trailhead logo" />
+    <img src={einsteinUrl} alt="Einstein logo" />
+</template>
+```
+
+## Static Resource Types
+
+### Single Files
+
+For individual files (images, CSS, JS):
+
+```javascript
+import logoUrl from '@salesforce/resourceUrl/company_logo';
+// Use directly: logoUrl
+```
+
+### Archive Files (ZIP)
+
+For files within a ZIP archive:
+
+```javascript
+import assetsUrl from '@salesforce/resourceUrl/my_assets';
+
+// Access specific files within the archive
+const imageUrl = assetsUrl + '/images/photo.png';
+const styleUrl = assetsUrl + '/styles/main.css';
+const scriptUrl = assetsUrl + '/scripts/utils.js';
+```
+
+<Note>
+When uploading a ZIP file as a static resource, maintain a clear directory structure. This makes it easier to reference files and organize assets logically.
+</Note>
+
+## Creating Static Resources
+
+### Via Setup UI
+
+1. Go to **Setup > Custom Code > Static Resources**
+2. Click **New**
+3. Enter a name (e.g., `company_logo`)
+4. Upload your file or ZIP archive
+5. Set **Cache Control** to `Public` (recommended)
+6. Click **Save**
+
+### Via VS Code
+
+1. Create a directory: `force-app/main/default/staticresources/`
+2. Add your file: `company_logo.png`
+3. Create a metadata file: `company_logo.resource-meta.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<StaticResource xmlns="http://soap.sforce.com/2006/04/metadata">
+    <cacheControl>Public</cacheControl>
+    <contentType>image/png</contentType>
+</StaticResource>
+```
+
+4. Deploy to your org
+
+## Common Use Cases
+
+### Images
+
+```javascript
+import logo from '@salesforce/resourceUrl/logo';
+```
+
+```html
+<img src={logo} alt="Company Logo" />
+```
+
+### CSS Files
+
+```javascript
+import { LightningElement } from 'lwc';
+import customStyles from '@salesforce/resourceUrl/custom_styles';
+import { loadStyle } from 'lightning/platformResourceLoader';
+
+export default class MyComponent extends LightningElement {
+    connectedCallback() {
+        loadStyle(this, customStyles + '/styles.css');
+    }
+}
+```
+
+### JavaScript Libraries
+
+```javascript
+import { LightningElement } from 'lwc';
+import chartJs from '@salesforce/resourceUrl/chart_js';
+import { loadScript } from 'lightning/platformResourceLoader';
+
+export default class MyComponent extends LightningElement {
+    async connectedCallback() {
+        await loadScript(this, chartJs);
+        // Chart.js is now available globally
+    }
+}
+```
+
+## Archive Structure Example
+
+For a ZIP file named `trailhead_characters.zip`:
+
+```
+trailhead_characters.zip
+├── images/
+│   ├── einstein.png
+│   ├── astro.png
+│   └── codey.png
+├── styles/
+│   └── characters.css
+└── data/
+    └── config.json
+```
+
+Access files:
+
+```javascript
+import characters from '@salesforce/resourceUrl/trailhead_characters';
+
+einsteinUrl = characters + '/images/einstein.png';
+astroUrl = characters + '/images/astro.png';
+styleUrl = characters + '/styles/characters.css';
+```
+
+## Best Practices
+
+- Use descriptive names for static resources
+- Set appropriate cache control settings
+- Organize related files in ZIP archives
+- Use `loadStyle()` and `loadScript()` from `lightning/platformResourceLoader`
+- Include alt text for images for accessibility
+- Compress images to reduce file size
+- Use SVG for icons when possible
+
+<Note>
+Static resource names in Salesforce are converted to API names automatically. Spaces become underscores, and special characters are removed. The import name should match the API name.
+</Note>
+
+## Cache Control
+
+- **Public** - Cached by browser and CDN (recommended for most assets)
+- **Private** - Cached by browser only, not by CDN
+
+## Size Limits
+
+- Maximum individual file size: 5 MB
+- Total static resource storage per org varies by edition
+
+## Source Files
+
+- `force-app/main/default/lwc/miscStaticResource/`

@@ -1,0 +1,228 @@
+---
+title: Public Methods
+description: Learn how to expose public methods in Lightning Web Components using the @api decorator
+---
+
+## Overview
+
+The `@api` decorator can expose methods as part of a component's public API. Public methods allow parent components to call functions on child components, enabling child-to-parent communication patterns.
+
+<Note>
+Public methods are typically used for imperative actions like refreshing data, opening modals, or resetting component state.
+</Note>
+
+## Basic Usage
+
+### Exposing a Public Method
+
+Mark a method as public using the `@api` decorator:
+
+```javascript
+// clock.js
+import { LightningElement, api } from 'lwc';
+
+export default class Clock extends LightningElement {
+    timestamp = new Date();
+
+    @api
+    refresh() {
+        this.timestamp = new Date();
+    }
+}
+```
+
+**Source**: `force-app/main/default/lwc/clock/clock.js:6-9`
+
+### Calling a Public Method
+
+Access the child component using `querySelector` and call the method:
+
+```javascript
+// apiMethod.js
+import { LightningElement } from 'lwc';
+
+export default class ApiMethod extends LightningElement {
+    handleRefresh() {
+        this.template.querySelector('c-clock').refresh();
+    }
+}
+```
+
+**Source**: `force-app/main/default/lwc/apiMethod/apiMethod.js:4-6`
+
+## Common Use Cases
+
+### 1. Refresh Component Data
+
+Refresh data displayed in a child component:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class DataTable extends LightningElement {
+    data = [];
+
+    @api
+    async refresh() {
+        // Fetch fresh data from server
+        this.data = await this.fetchData();
+    }
+}
+```
+
+### 2. Reset Component State
+
+Reset form or component state to initial values:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class CustomForm extends LightningElement {
+    formData = {};
+
+    @api
+    reset() {
+        this.formData = {};
+        this.template.querySelector('form').reset();
+    }
+}
+```
+
+### 3. Focus Management
+
+Programmatically set focus on an input element:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class CustomInput extends LightningElement {
+    @api
+    focus() {
+        this.template.querySelector('input').focus();
+    }
+}
+```
+
+### 4. Screen Actions
+
+Implement custom screen actions for Salesforce flows:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavigateToRecordHeadlessAction extends NavigationMixin(LightningElement) {
+    @api invoke() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: this.recordId,
+                actionName: 'view'
+            }
+        });
+    }
+}
+```
+
+**Source**: Similar to `force-app/main/default/lwc/navigateToRecordHeadlessAction/navigateToRecordHeadlessAction.js:7`
+
+## Async Public Methods
+
+Public methods can be async for asynchronous operations:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class AsyncComponent extends LightningElement {
+    @api recordId;
+
+    @api async invoke() {
+        // Perform async operations
+        await this.saveData();
+        await this.dispatchEvent(new CustomEvent('complete'));
+    }
+
+    async saveData() {
+        // Save data to server
+        return new Promise(resolve => setTimeout(resolve, 1000));
+    }
+}
+```
+
+**Source**: Similar to `force-app/main/default/lwc/dispatchEventHeadlessAction/dispatchEventHeadlessAction.js:6`
+
+## Best Practices
+
+<Note>
+Use public methods sparingly. Event-based communication is often more maintainable than directly calling child methods.
+</Note>
+
+### When to Use Public Methods
+
+- **Imperative actions**: Refreshing, resetting, focusing
+- **Screen actions**: Flow integration points
+- **Utility functions**: Reusable logic that doesn't fit event patterns
+
+### When to Use Events Instead
+
+- **Data flow**: Sending data from child to parent
+- **User interactions**: Button clicks, form submissions
+- **State changes**: Notifying parent of internal state changes
+
+## Accessing Child Components
+
+### Using querySelector
+
+```javascript
+this.template.querySelector('c-child-component').publicMethod();
+```
+
+### With lwc:ref (Recommended)
+
+```html
+<template>
+    <c-clock lwc:ref="clockRef"></c-clock>
+    <lightning-button onclick={handleRefresh}></lightning-button>
+</template>
+```
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class Parent extends LightningElement {
+    handleRefresh() {
+        this.refs.clockRef.refresh();
+    }
+}
+```
+
+## Error Handling
+
+Always handle potential errors in public methods:
+
+```javascript
+import { LightningElement, api } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+export default class SafeComponent extends LightningElement {
+    @api
+    async performAction() {
+        try {
+            await this.riskyOperation();
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error',
+                    message: error.message,
+                    variant: 'error'
+                })
+            );
+        }
+    }
+}
+```
+
+## Related Resources
+
+- [Public Properties](/features/public-properties)
+- [Lifecycle Hooks](/features/lifecycle-hooks)

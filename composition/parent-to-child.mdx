@@ -1,0 +1,264 @@
+---
+title: Parent-Child Communication
+description: Pass data from parent components to child components using public properties
+---
+
+Parent-child communication in Lightning Web Components is achieved through public properties decorated with `@api`. This enables a unidirectional data flow where parents control the state and behavior of their children.
+
+## The @api Decorator
+
+The `@api` decorator makes a property or method public, allowing parent components to access it. Properties marked with `@api` are reactive, meaning changes automatically trigger a re-render of the component.
+
+### Importing @api
+
+```javascript
+import { LightningElement, api } from 'lwc';
+```
+
+## Public Properties
+
+Public properties allow parent components to pass data to child components.
+
+### Child Component Definition
+
+**contactTile.js**
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class ContactTile extends LightningElement {
+    @api contact;
+}
+```
+
+**contactTile.html**
+```html
+<template>
+    <template lwc:if={contact}>
+        <lightning-layout vertical-align="center">
+            <lightning-layout-item>
+                <img
+                    lwc:if={contact.Picture__c}
+                    src={contact.Picture__c}
+                    alt="Profile photo"
+                />
+                <lightning-icon
+                    lwc:else
+                    icon-name="standard:avatar"
+                    alternative-text="Missing profile photo"
+                ></lightning-icon>
+            </lightning-layout-item>
+            <lightning-layout-item padding="around-small">
+                <p>{contact.Name}</p>
+                <p>{contact.Title}</p>
+                <p>
+                    <lightning-formatted-phone
+                        value={contact.Phone}
+                    ></lightning-formatted-phone>
+                </p>
+            </lightning-layout-item>
+        </lightning-layout>
+    </template>
+    <template lwc:else>
+        <p>No contact data available.</p>
+    </template>
+</template>
+```
+
+### Parent Component Usage
+
+**compositionBasics.js**
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class CompositionParent extends LightningElement {
+    contact = {
+        Name: 'Amy Taylor',
+        Title: 'VP of Engineering',
+        Phone: '6172559632',
+        Picture__c:
+            'https://s3-us-west-2.amazonaws.com/dev-or-devrl-s3-bucket/sample-apps/people/amy_taylor.jpg'
+    };
+}
+```
+
+**compositionBasics.html**
+```html
+<template>
+    <c-contact-tile contact={contact}></c-contact-tile>
+</template>
+```
+
+## Multiple Public Properties
+
+A child component can expose multiple public properties to accept different types of data.
+
+### Example: Multiple Properties
+
+**child.js**
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class Child extends LightningElement {
+    @api firstName;
+    @api lastName;
+
+    get fullName() {
+        return `${this.firstName} ${this.lastName}`;
+    }
+}
+```
+
+**child.html**
+```html
+<template>
+    <p>Hello, {fullName}!</p>
+</template>
+```
+
+**Parent usage:**
+```html
+<template>
+    <c-child first-name="Jennifer" last-name="Wu"></c-child>
+</template>
+```
+
+<Note>
+  Property names in HTML use kebab-case (`first-name`), but the corresponding JavaScript property uses camelCase (`firstName`)
+</Note>
+
+## Property Binding
+
+You can bind parent component properties to child component properties using curly braces `{}`.
+
+### Static Values
+
+```html
+<c-child first-name="Amy" last-name="Taylor"></c-child>
+```
+
+### Dynamic Values
+
+```html
+<c-contact-tile contact={contact}></c-contact-tile>
+```
+
+### Complex Objects
+
+You can pass entire objects, not just primitive values:
+
+```javascript
+// Parent component
+contact = {
+    Name: 'Amy Taylor',
+    Title: 'VP of Engineering',
+    Phone: '6172559632',
+    Picture__c: 'https://example.com/photo.jpg'
+};
+```
+
+```html
+<c-contact-tile contact={contact}></c-contact-tile>
+```
+
+## Best Practices
+
+<Steps>
+  <Step title="Use descriptive property names">
+    Choose clear, self-documenting names for your public properties
+    
+    ```javascript
+    @api contact;  // Good
+    @api data;     // Too generic
+    ```
+  </Step>
+  
+  <Step title="Validate input data">
+    Check for null or undefined values in your child component
+    
+    ```html
+    <template lwc:if={contact}>
+        <!-- Render contact -->
+    </template>
+    <template lwc:else>
+        <p>No contact data available.</p>
+    </template>
+    ```
+  </Step>
+  
+  <Step title="Keep components focused">
+    Each component should have a single, well-defined responsibility
+  </Step>
+  
+  <Step title="Document public APIs">
+    Use JSDoc comments to document what each public property expects
+    
+    ```javascript
+    /**
+     * @api
+     * @type {Object}
+     * @description Contact record with Name, Title, Phone, and Picture__c fields
+     */
+    @api contact;
+    ```
+  </Step>
+</Steps>
+
+## Data Flow Rules
+
+<Warning>
+  Data flows **down** from parent to child. Child components should not modify properties received from parents. This ensures a predictable, unidirectional data flow.
+</Warning>
+
+- **Parent controls the data**: The parent component owns and manages the state
+- **Child receives the data**: The child component receives data through `@api` properties
+- **Child displays the data**: The child component renders the data but doesn't modify it
+- **Child communicates changes**: If the child needs to trigger changes, it dispatches events to the parent
+
+## Common Patterns
+
+### Passing Primitive Values
+
+```javascript
+// Parent
+export default class Parent extends LightningElement {
+    firstName = 'Amy';
+    lastName = 'Taylor';
+}
+```
+
+```html
+<!-- Parent template -->
+<c-child first-name={firstName} last-name={lastName}></c-child>
+```
+
+### Passing Objects
+
+```javascript
+// Parent
+export default class Parent extends LightningElement {
+    contact = {
+        Name: 'Amy Taylor',
+        Title: 'VP of Engineering'
+    };
+}
+```
+
+```html
+<!-- Parent template -->
+<c-contact-tile contact={contact}></c-contact-tile>
+```
+
+### Passing Arrays
+
+See the [Nesting Patterns](/composition/nesting) guide for examples of passing arrays and iterating over child components.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Nesting Patterns" icon="sitemap" href="./nesting">
+    Learn about iterating over arrays to create multiple child instances
+  </Card>
+  <Card title="Events" icon="bolt" href="/events/overview">
+    Discover how child components communicate back to parents
+  </Card>
+</CardGroup>

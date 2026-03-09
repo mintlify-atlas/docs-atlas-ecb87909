@@ -1,0 +1,172 @@
+---
+title: REST API Calls
+description: Make REST API calls using the Fetch API
+---
+
+## Overview
+
+The `miscRestApiCall` component demonstrates how to call external REST APIs using the browser's native Fetch API. This example queries the Google Books API to search for books.
+
+## Source Component
+
+- **miscRestApiCall** - Makes REST API calls using fetch()
+
+## Key Features
+
+- Native Fetch API usage
+- Async/await error handling
+- Loading state management
+- CSP trusted sites configuration
+
+## Implementation
+
+### Basic REST Call
+
+Use the Fetch API with async/await:
+
+```javascript
+import { LightningElement } from 'lwc';
+
+const QUERY_URL = 'https://www.googleapis.com/books/v1/volumes?langRestrict=en&q=';
+
+export default class MiscRestCall extends LightningElement {
+    searchKey = 'Harry Potter';
+    books;
+    error;
+    isLoading = false;
+
+    async handleSearchClick() {
+        try {
+            this.isLoading = true;
+            const response = await fetch(QUERY_URL + this.searchKey);
+            
+            // fetch doesn't throw on HTTP errors, check manually
+            if (!response.ok) {
+                throw Error(response);
+            }
+            
+            this.books = await response.json();
+        } catch (error) {
+            this.error = error;
+            this.books = undefined;
+        } finally {
+            this.isLoading = false;
+        }
+    }
+}
+```
+
+## CSP Configuration
+
+<Note>
+Before making external API calls, you must add the base URL to CSP Trusted Sites in Salesforce Setup. Navigate to **Setup > Security > CSP Trusted Sites** and add the domain (e.g., `https://www.googleapis.com/`).
+</Note>
+
+### Adding a Trusted Site
+
+1. Go to **Setup > Security > CSP Trusted Sites**
+2. Click **New Trusted Site**
+3. Enter the base URL (e.g., `https://www.googleapis.com`)
+4. Enable the appropriate directives (Connect, Font, Img, Media, Style)
+5. Save
+
+## Error Handling
+
+The Fetch API doesn't automatically throw errors for HTTP error responses. Always check the `ok` property:
+
+```javascript
+const response = await fetch(url);
+
+if (!response.ok) {
+    throw Error(response);
+}
+```
+
+### Try-Catch-Finally Pattern
+
+```javascript
+try {
+    // Set loading state
+    this.isLoading = true;
+    
+    // Make API call
+    const response = await fetch(url);
+    if (!response.ok) throw Error(response);
+    
+    // Process response
+    this.data = await response.json();
+    this.error = undefined;
+} catch (error) {
+    // Handle errors
+    this.error = error;
+    this.data = undefined;
+} finally {
+    // Always clean up loading state
+    this.isLoading = false;
+}
+```
+
+## Loading States
+
+Display a spinner while waiting for the API response:
+
+```html
+<template lwc:if={books}>
+    <template for:each={books.items} for:item="book">
+        <p key={book.id}>{book.volumeInfo.title}</p>
+    </template>
+</template>
+
+<template lwc:elseif={error}>
+    <c-error-panel errors={error}></c-error-panel>
+</template>
+
+<lightning-spinner
+    lwc:if={isLoading}
+    alternative-text="Loading records"
+></lightning-spinner>
+```
+
+## POST Requests
+
+Make POST requests by adding options to fetch():
+
+```javascript
+const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+});
+```
+
+## Headers and Authentication
+
+Add custom headers for authentication:
+
+```javascript
+const response = await fetch(url, {
+    headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json'
+    }
+});
+```
+
+<Note>
+For Salesforce API calls, use Apex methods with `@AuraEnabled(cacheable=true)` instead of direct REST calls. The Fetch API is best for external third-party APIs.
+</Note>
+
+## Best Practices
+
+- Always add external domains to CSP Trusted Sites
+- Check `response.ok` before processing data
+- Use try-catch-finally for proper error handling
+- Manage loading states for better UX
+- Clean up state in the `finally` block
+- Use Apex for Salesforce data operations
+
+## Source Files
+
+- `force-app/main/default/lwc/miscRestApiCall/`

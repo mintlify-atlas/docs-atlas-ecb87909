@@ -1,0 +1,265 @@
+---
+title: Page Navigation
+description: Navigate to home pages, named pages, and custom tabs in Salesforce
+icon: browser
+---
+
+## Overview
+
+Page navigation allows you to navigate to standard Salesforce pages like the home page, Chatter, Files, and custom tabs. This is useful for creating custom navigation experiences in your Lightning Web Components.
+
+## Navigation Types
+
+<CardGroup cols={2}>
+  <Card title="Named Pages" icon="house">
+    Navigate to standard Salesforce pages like Home, Chatter, and more
+  </Card>
+  
+  <Card title="Custom Tabs" icon="table-columns">
+    Navigate to custom tabs defined in your Salesforce org
+  </Card>
+  
+  <Card title="Object Home Pages" icon="table">
+    Navigate to object home pages like Files
+  </Card>
+</CardGroup>
+
+## Navigate to Home Page
+
+Navigate to the Salesforce home page using the `standard__namedPage` type.
+
+<CodeGroup>
+```javascript navToHome.js
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToHome extends NavigationMixin(LightningElement) {
+    navigateToHome() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__namedPage',
+            attributes: {
+                pageName: 'home'
+            }
+        });
+    }
+}
+```
+
+```html navToHome.html
+<template>
+    <lightning-card title="NavToHome">
+        <lightning-button
+            label="Go to Home"
+            onclick={navigateToHome}
+        ></lightning-button>
+    </lightning-card>
+</template>
+```
+</CodeGroup>
+
+**Source:** [navToHome.js:5](~/workspace/source/force-app/main/default/lwc/navToHome/navToHome.js)
+
+## Navigate to Chatter Home
+
+Navigate to the Chatter home page.
+
+<CodeGroup>
+```javascript navToChatterHome.js
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToChatterHome extends NavigationMixin(
+    LightningElement
+) {
+    navigateToChatter() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__namedPage',
+            attributes: {
+                pageName: 'chatter'
+            }
+        });
+    }
+}
+```
+
+```html navToChatterHome.html
+<template>
+    <lightning-card title="NavToChatterHome">
+        <lightning-button
+            label="Go to Chatter"
+            onclick={navigateToChatter}
+        ></lightning-button>
+    </lightning-card>
+</template>
+```
+</CodeGroup>
+
+**Source:** [navToChatterHome.js:7](~/workspace/source/force-app/main/default/lwc/navToChatterHome/navToChatterHome.js)
+
+## Navigate to Files Home
+
+Navigate to the Files home page using the `standard__objectPage` type.
+
+<CodeGroup>
+```javascript navToFilesHome.js
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToFilesHome extends NavigationMixin(LightningElement) {
+    navigateToFilesHome() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'ContentDocument',
+                actionName: 'home'
+            }
+        });
+    }
+}
+```
+
+```html navToFilesHome.html
+<template>
+    <lightning-card title="NavToFilesHome">
+        <lightning-button
+            label="Go to Files"
+            onclick={navigateToFilesHome}
+        ></lightning-button>
+    </lightning-card>
+</template>
+```
+</CodeGroup>
+
+**Source:** [navToFilesHome.js:4](~/workspace/source/force-app/main/default/lwc/navToFilesHome/navToFilesHome.js)
+
+<Info>
+Files home uses `standard__objectPage` with `ContentDocument` as the object API name and `home` as the action.
+</Info>
+
+## Navigate to Custom Tab
+
+Navigate to a custom tab using the `standard__navItemPage` type.
+
+<CodeGroup>
+```javascript navToHelloTab.js
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavToHelloTab extends NavigationMixin(LightningElement) {
+    navigateToHelloTab() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: {
+                apiName: 'Hello'
+            }
+        });
+    }
+}
+```
+
+```html navToHelloTab.html
+<template>
+    <lightning-card title="NavToHelloTab">
+        <lightning-button
+            label="Go to Hello Tab"
+            onclick={navigateToHelloTab}
+        ></lightning-button>
+    </lightning-card>
+</template>
+```
+</CodeGroup>
+
+**Source:** [navToHelloTab.js:5](~/workspace/source/force-app/main/default/lwc/navToHelloTab/navToHelloTab.js)
+
+<Warning>
+The custom tab must exist in your org and the user must have permission to access it.
+</Warning>
+
+## PageReference Types for Pages
+
+### standard__namedPage
+
+Navigate to standard Salesforce named pages.
+
+<ParamField path="type" type="string" required>
+  Must be `standard__namedPage`
+</ParamField>
+
+<ParamField path="attributes.pageName" type="string" required>
+  The name of the page to navigate to
+</ParamField>
+
+**Common Page Names:**
+- `home` - Salesforce home page
+- `chatter` - Chatter home page
+
+### standard__navItemPage
+
+Navigate to custom tabs.
+
+<ParamField path="type" type="string" required>
+  Must be `standard__navItemPage`
+</ParamField>
+
+<ParamField path="attributes.apiName" type="string" required>
+  The API name of the custom tab
+</ParamField>
+
+### standard__objectPage (for home)
+
+Navigate to object home pages.
+
+<ParamField path="type" type="string" required>
+  Must be `standard__objectPage`
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the object (e.g., 'ContentDocument' for Files)
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  Must be `home` for object home pages
+</ParamField>
+
+## Summary Table
+
+| Destination | Type | Attributes |
+|-------------|------|------------|
+| Home Page | `standard__namedPage` | `pageName: 'home'` |
+| Chatter | `standard__namedPage` | `pageName: 'chatter'` |
+| Files | `standard__objectPage` | `objectApiName: 'ContentDocument'`, `actionName: 'home'` |
+| Custom Tab | `standard__navItemPage` | `apiName: 'YourTabName'` |
+
+## Headless Action Example
+
+You can also use navigation in headless actions (components without UI that can be invoked from Quick Actions).
+
+```javascript navigateToRecordHeadlessAction.js
+import { LightningElement, api } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavigateToRecordHeadlessAction extends NavigationMixin(
+    LightningElement
+) {
+    @api invoke() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__objectPage',
+            attributes: {
+                objectApiName: 'Contact',
+                actionName: 'home'
+            }
+        });
+    }
+}
+```
+
+**Source:** [navigateToRecordHeadlessAction.js:7](~/workspace/source/force-app/main/default/lwc/navigateToRecordHeadlessAction/navigateToRecordHeadlessAction.js)
+
+<Tip>
+Headless actions are useful for creating Quick Actions that perform navigation without displaying a UI.
+</Tip>
+
+## Related Examples
+
+- [Navigate to Records](/navigation/records) - Navigate to record pages
+- [Navigate to List Views](/navigation/utilities#navigate-to-list-view) - View filtered lists

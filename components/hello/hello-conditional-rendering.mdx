@@ -1,0 +1,102 @@
+---
+title: 'Hello Conditional Rendering'
+description: 'Conditional rendering with lwc:if and lwc:else directives'
+---
+
+## Overview
+
+The `helloConditionalRendering` component demonstrates conditional rendering in Lightning Web Components. It shows how to use the `lwc:if` and `lwc:else` directives to conditionally display different content based on component state.
+
+## What It Does
+
+This component displays different messages based on whether a checkbox is checked. When the "Show details" checkbox is selected, it shows "These are the details!" Otherwise, it displays "Not showing details." This demonstrates how to conditionally render elements in the template.
+
+## Component Code
+
+<CodeGroup>
+
+```javascript helloConditionalRendering.js
+import { LightningElement } from 'lwc';
+
+export default class HelloConditionalRendering extends LightningElement {
+    areDetailsVisible = false;
+
+    handleChange(event) {
+        this.areDetailsVisible = event.target.checked;
+    }
+}
+```
+
+```html helloConditionalRendering.html
+<template>
+    <lightning-card
+        title="HelloConditionalRendering"
+        icon-name="custom:custom14"
+    >
+        <div class="slds-var-m-around_medium">
+            <lightning-input
+                type="checkbox"
+                label="Show details"
+                onchange={handleChange}
+            ></lightning-input>
+
+            <div class="slds-var-m-vertical_medium">
+                <template lwc:if={areDetailsVisible}>
+                    These are the details!
+                </template>
+                <template lwc:else> Not showing details. </template>
+            </div>
+        </div>
+
+        <c-view-source source="lwc/helloConditionalRendering" slot="footer">
+            Conditionally render elements.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+- **lwc:if Directive**: Renders content when the expression evaluates to true
+- **lwc:else Directive**: Renders alternative content when the lwc:if condition is false
+- **Boolean Properties**: The `areDetailsVisible` property tracks the checkbox state
+- **Checkbox Events**: The `event.target.checked` provides the checkbox's boolean value
+- **Conditional DOM**: Elements are added/removed from the DOM based on the condition
+
+## How It Works
+
+1. The checkbox is initially unchecked, so `areDetailsVisible` is `false`
+2. The `lwc:else` block renders "Not showing details"
+3. When the user checks the checkbox, `handleChange` sets `areDetailsVisible` to `true`
+4. The `lwc:if` block renders "These are the details!"
+5. The `lwc:else` block is removed from the DOM
+
+## Important Notes
+
+- The `lwc:if` and `lwc:else` directives must be used on `<template>` tags
+- The `lwc:else` must immediately follow the `lwc:if` block
+- Content is completely added or removed from the DOM, not just hidden with CSS
+- For three-way conditions, you can use `lwc:elseif`
+
+## Usage Example
+
+To use this component in your Salesforce org:
+
+```html
+<c-hello-conditional-rendering></c-hello-conditional-rendering>
+```
+
+Interaction flow:
+1. Initially displays: "Not showing details"
+2. Check the "Show details" checkbox
+3. Displays: "These are the details!"
+4. Uncheck the checkbox
+5. Returns to: "Not showing details"
+
+## Source Code
+
+View the complete source code on GitHub:
+- [helloConditionalRendering.js](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloConditionalRendering/helloConditionalRendering.js)
+- [helloConditionalRendering.html](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloConditionalRendering/helloConditionalRendering.html)

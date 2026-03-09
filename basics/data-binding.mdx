@@ -1,0 +1,113 @@
+---
+title: 'Data Binding'
+description: 'Learn how to create interactive components with two-way data binding'
+icon: 'arrows-left-right'
+---
+
+## Overview
+
+Data binding allows components to respond to user input by updating properties when form values change. This creates interactive, reactive user interfaces.
+
+## How It Works
+
+The `helloBinding` component demonstrates two-way data binding:
+
+1. The `greeting` property is bound to both the display text and input field value
+2. When the user types in the input field, the `handleChange` method updates the property
+3. The template automatically re-renders with the new value
+
+## Implementation
+
+<CodeGroup>
+
+```javascript helloBinding.js
+import { LightningElement } from 'lwc';
+
+export default class HelloBinding extends LightningElement {
+    greeting = 'World';
+
+    handleChange(event) {
+        this.greeting = event.target.value;
+    }
+}
+```
+
+```html helloBinding.html
+<template>
+    <lightning-card title="HelloBinding" icon-name="custom:custom14">
+        <div class="slds-var-m-around_medium">
+            <p>Hello, {greeting}!</p>
+            <lightning-input
+                label="Name"
+                value={greeting}
+                onchange={handleChange}
+            ></lightning-input>
+        </div>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+### Event Handling
+
+The `onchange` attribute binds the input's change event to the `handleChange` method:
+
+```html
+<lightning-input
+    onchange={handleChange}
+></lightning-input>
+```
+
+<Note>
+Event handlers in LWC use the `on` prefix followed by the event name in lowercase. For example: `onchange`, `onclick`, `onkeyup`.
+</Note>
+
+### Accessing Event Data
+
+The event handler receives an event object with a `target` property:
+
+```javascript
+handleChange(event) {
+    this.greeting = event.target.value;
+}
+```
+
+- `event.target` references the element that triggered the event
+- `event.target.value` contains the current value of the input field
+
+### Reactive Properties
+
+When you update a property (like `this.greeting`), LWC automatically:
+
+1. Detects the change
+2. Re-evaluates all template expressions that reference the property
+3. Updates the DOM to reflect the new value
+
+<Tip>
+You don't need to manually trigger re-renders. LWC's reactive system handles this automatically when you update component properties.
+</Tip>
+
+## What You'll See
+
+1. Initial render shows "Hello, World!" with an input field containing "World"
+2. As you type in the input field, the greeting text updates in real-time
+3. Type "Lightning" to see "Hello, Lightning!"
+
+## Best Practices
+
+<Tip>
+**Keep event handlers simple**: Event handlers should update properties or call other methods. Avoid complex business logic directly in handlers.
+</Tip>
+
+<Note>
+**Use `event.target.value` carefully**: Always verify the event structure matches your expectations, especially with custom components.
+</Note>
+
+## Next Steps
+
+- [Expressions](/basics/expressions) - Compute values from multiple properties
+- [Conditional Rendering](/basics/conditional-rendering) - Show/hide content based on property values
+- [Iteration](/basics/iteration) - Render lists of data

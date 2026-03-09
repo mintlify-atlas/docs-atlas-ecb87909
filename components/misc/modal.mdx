@@ -1,0 +1,121 @@
+---
+title: Modal
+description: Create modal dialogs using lightning/modal
+---
+
+## Overview
+
+The `miscModal` and `myModal` components demonstrate how to create modal dialogs using the `lightning/modal` base component. Modals overlay content on the current app window and can return values when closed.
+
+## Source Components
+
+- **miscModal** - Parent component that opens the modal
+- **myModal** - Custom modal component that extends LightningModal
+
+## Key Features
+
+- Programmatic modal creation
+- Customizable size and content
+- Return values on close
+- ARIA accessibility support
+
+## Implementation
+
+### Creating the Modal Component
+
+Extend `LightningModal` and use the modal composition components:
+
+```javascript
+// myModal.js
+import { api } from 'lwc';
+import LightningModal from 'lightning/modal';
+
+export default class MyModal extends LightningModal {
+    @api header;
+    @api content;
+
+    handleClose() {
+        this.close('return value');
+    }
+}
+```
+
+```html
+<!-- myModal.html -->
+<template>
+    <lightning-modal-header label={header}></lightning-modal-header>
+    <lightning-modal-body>Content: {content}</lightning-modal-body>
+    <lightning-modal-footer>
+        <lightning-button
+            label="Close"
+            onclick={handleClose}
+        ></lightning-button>
+    </lightning-modal-footer>
+</template>
+```
+
+### Opening the Modal
+
+Import and call the `open()` method with configuration:
+
+```javascript
+// miscModal.js
+import { LightningElement } from 'lwc';
+import MyModal from 'c/myModal';
+
+export default class MiscModal extends LightningElement {
+    async handleShowModal() {
+        const result = await MyModal.open({
+            size: 'small',
+            description: 'MiscModal displays the message in a popup',
+            header: this.header,
+            content: this.content
+        });
+        // result contains the value passed to close() or undefined if closed with X
+    }
+}
+```
+
+## Modal Configuration
+
+The `open()` method accepts these options:
+
+- **size** - Modal size: `small`, `medium`, or `large`
+- **description** - Accessibility description
+- Custom properties (like `header`, `content`) are passed to `@api` properties
+
+<Note>
+The modal returns a Promise that resolves when closed. If closed with the X button, the promise returns `undefined`. If closed programmatically with `this.close(value)`, it returns the provided value.
+</Note>
+
+## Return Values
+
+Handle different close scenarios:
+
+```javascript
+const result = await MyModal.open({ /* config */ });
+
+if (result === undefined) {
+    // User clicked X button
+} else {
+    // Modal closed programmatically with a value
+}
+```
+
+## Accessibility
+
+The `aria-haspopup="true"` attribute should be added to the button that opens the modal:
+
+```html
+<lightning-button
+    onclick={handleShowModal}
+    aria-haspopup="true"
+    label="Show modal"
+>
+</lightning-button>
+```
+
+## Source Files
+
+- `force-app/main/default/lwc/miscModal/`
+- `force-app/main/default/lwc/myModal/`

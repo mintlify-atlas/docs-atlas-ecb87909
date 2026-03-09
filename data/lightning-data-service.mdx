@@ -1,0 +1,146 @@
+---
+title: Lightning Data Service
+description: Use Lightning Data Service to create, read, update, and delete Salesforce records without Apex code
+---
+
+Lightning Data Service (LDS) provides a declarative way to work with Salesforce data in Lightning Web Components. It handles caching, change detection, and automatic UI updates.
+
+## Creating Records
+
+Use `createRecord` from `lightning/uiRecordApi` to create new records imperatively.
+
+```javascript
+import { LightningElement } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { createRecord } from 'lightning/uiRecordApi';
+import { reduceErrors } from 'c/ldsUtils';
+import ACCOUNT_OBJECT from '@salesforce/schema/Account';
+import NAME_FIELD from '@salesforce/schema/Account.Name';
+
+export default class LdsCreateRecord extends LightningElement {
+    accountId;
+    name = '';
+
+    handleNameChange(event) {
+        this.accountId = undefined;
+        this.name = event.target.value;
+    }
+
+    async createAccount() {
+        const fields = {};
+        fields[NAME_FIELD.fieldApiName] = this.name;
+        const recordInput = { apiName: ACCOUNT_OBJECT.objectApiName, fields };
+        try {
+            const account = await createRecord(recordInput);
+            this.accountId = account.id;
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Account created',
+                    variant: 'success'
+                })
+            );
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error creating record',
+                    message: reduceErrors(error).join(', '),
+                    variant: 'error'
+                })
+            );
+        }
+    }
+}
+```
+
+### Parameters
+
+- **recordInput** (Object): Contains the record data
+  - **apiName** (String): The API name of the object (e.g., 'Account')
+  - **fields** (Object): Key-value pairs of field API names and values
+
+### Return Value
+
+Returns a Promise that resolves to an object containing the newly created record's `id` and other metadata.
+
+## Deleting Records
+
+Use `deleteRecord` from `lightning/uiRecordApi` to delete records. Combine with `refreshApex` to refresh cached data after deletion.
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { refreshApex } from '@salesforce/apex';
+import { deleteRecord } from 'lightning/uiRecordApi';
+import getAccountList from '@salesforce/apex/AccountController.getAccountList';
+import { reduceErrors } from 'c/ldsUtils';
+
+export default class LdsDeleteRecord extends LightningElement {
+    accounts;
+    error;
+
+    /** Wired Apex result so it can be refreshed programmatically */
+    wiredAccountsResult;
+
+    @wire(getAccountList)
+    wiredAccounts(result) {
+        this.wiredAccountsResult = result;
+        if (result.data) {
+            this.accounts = result.data;
+            this.error = undefined;
+        } else if (result.error) {
+            this.error = result.error;
+            this.accounts = undefined;
+        }
+    }
+
+    async deleteAccount(event) {
+        const recordId = event.target.dataset.recordid;
+
+        try {
+            await deleteRecord(recordId);
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Account deleted',
+                    variant: 'success'
+                })
+            );
+            await refreshApex(this.wiredAccountsResult);
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error deleting record',
+                    message: reduceErrors(error).join(', '),
+                    variant: 'error'
+                })
+            );
+        }
+    }
+}
+```
+
+### Parameters
+
+- **recordId** (String): The 15 or 18-character Salesforce record ID
+
+### Return Value
+
+Returns a Promise that resolves when the record is successfully deleted.
+
+## Benefits
+
+<CardGroup cols={2}>
+  <Card title="Automatic Caching" icon="database">
+    LDS automatically caches records and shares them across components
+  </Card>
+  <Card title="Change Detection" icon="sync">
+    Components automatically update when underlying records change
+  </Card>
+  <Card title="No Apex Required" icon="code">
+    Perform CRUD operations without writing server-side code
+  </Card>
+  <Card title="Security Built-in" icon="shield">
+    Respects field-level and object-level security automatically
+  </Card>
+</CardGroup>

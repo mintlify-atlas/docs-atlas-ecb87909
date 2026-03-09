@@ -1,0 +1,514 @@
+---
+title: Dynamic Interactions
+description: Create dynamic, interactive user experiences with imperative Apex calls, dynamic component creation, and navigation
+---
+
+Dynamic interactions allow your Lightning Web Components to respond to user actions in real-time, fetch data on demand, and create rich, interactive experiences.
+
+## Imperative Apex Calls
+
+While `@wire` is declarative and caches results, imperative Apex calls give you full control over when and how data is fetched.
+
+### Basic Imperative Call
+
+```javascript
+import { LightningElement } from 'lwc';
+import getAccounts from '@salesforce/apex/AccountController.getAccounts';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+export default class ImperativeApex extends LightningElement {
+    accounts = [];
+    error;
+    isLoading = false;
+
+    async loadAccounts() {
+        this.isLoading = true;
+        try {
+            this.accounts = await getAccounts();
+            this.error = undefined;
+        } catch (error) {
+            this.error = error;
+            this.accounts = [];
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error loading accounts',
+                    message: error.body.message,
+                    variant: 'error'
+                })
+            );
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    handleRefresh() {
+        this.loadAccounts();
+    }
+}
+```
+
+### Imperative with Parameters
+
+```javascript
+import searchAccounts from '@salesforce/apex/AccountController.searchAccounts';
+
+export default class SearchAccounts extends LightningElement {
+    searchResults = [];
+    searchTerm = '';
+
+    handleSearchChange(event) {
+        this.searchTerm = event.target.value;
+    }
+
+    async handleSearch() {
+        if (this.searchTerm.length < 2) {
+            return;
+        }
+
+        try {
+            this.searchResults = await searchAccounts({
+                searchTerm: this.searchTerm
+            });
+        } catch (error) {
+            console.error('Search error:', error);
+            this.searchResults = [];
+        }
+    }
+}
+```
+
+### Refreshing @wire Data
+
+Combine `@wire` for initial load with imperative calls for refresh:
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { refreshApex } from '@salesforce/apex';
+import getAccounts from '@salesforce/apex/AccountController.getAccounts';
+
+export default class RefreshWireData extends LightningElement {
+    wiredAccountsResult;
+
+    @wire(getAccounts)
+    wiredAccounts(result) {
+        this.wiredAccountsResult = result;
+    }
+
+    get accounts() {
+        return this.wiredAccountsResult.data;
+    }
+
+    async handleRefresh() {
+        // Refresh the @wire data
+        await refreshApex(this.wiredAccountsResult);
+    }
+}
+```
+
+## Dynamic Navigation
+
+Use the Navigation Service to navigate to different pages programmatically.
+
+### Navigate to Record Page
+
+```javascript
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class NavigateToRecord extends NavigationMixin(LightningElement) {
+    navigateToAccount(accountId) {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: accountId,
+                objectApiName: 'Account',
+                actionName: 'view'
+            }
+        });
+    }
+
+    navigateToEdit(accountId) {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: accountId,
+                objectApiName: 'Account',
+                actionName: 'edit'
+            }
+        });
+    }
+}
+```
+
+### Navigate to List View
+
+```javascript
+navigateToListView() {
+    this[NavigationMixin.Navigate]({
+        type: 'standard__objectPage',
+        attributes: {
+            objectApiName: 'Contact',
+            actionName: 'list'
+        },
+        state: {
+            filterName: 'Recent'
+        }
+    });
+}
+```
+
+### Navigate to Related List
+
+```javascript
+navigateToRelatedList(accountId) {
+    this[NavigationMixin.Navigate]({
+        type: 'standard__recordRelationshipPage',
+        attributes: {
+            recordId: accountId,
+            objectApiName: 'Account',
+            relationshipApiName: 'Contacts',
+            actionName: 'view'
+        }
+    });
+}
+```
+
+### Navigate to Component
+
+```javascript
+navigateToCustomComponent() {
+    this[NavigationMixin.Navigate]({
+        type: 'standard__component',
+        attributes: {
+            componentName: 'c__MyLightningComponent'
+        }
+    });
+}
+```
+
+### Navigate to External URL
+
+```javascript
+navigateToWebPage() {
+    this[NavigationMixin.Navigate]({
+        type: 'standard__webPage',
+        attributes: {
+            url: 'https://www.salesforce.com'
+        }
+    });
+}
+```
+
+### Generate URL for Navigation
+
+```javascript
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class GenerateUrl extends NavigationMixin(LightningElement) {
+    recordPageUrl;
+
+    connectedCallback() {
+        this[NavigationMixin.GenerateUrl]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: '001xxxxxxxxxxxx',
+                actionName: 'view'
+            }
+        }).then(url => {
+            this.recordPageUrl = url;
+        });
+    }
+}
+```
+
+## Dynamic Component Creation
+
+Create components dynamically at runtime.
+
+### Template-based Dynamic Components
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class DynamicComponents extends LightningElement {
+    selectedComponent = 'chart';
+
+    get isChart() {
+        return this.selectedComponent === 'chart';
+    }
+
+    get isTable() {
+        return this.selectedComponent === 'table';
+    }
+
+    handleComponentChange(event) {
+        this.selectedComponent = event.target.value;
+    }
+}
+```
+
+```html
+<template>
+    <lightning-combobox
+        label="Select View"
+        value={selectedComponent}
+        options={options}
+        onchange={handleComponentChange}
+    ></lightning-combobox>
+
+    <template lwc:if={isChart}>
+        <c-chart-component></c-chart-component>
+    </template>
+
+    <template lwc:if={isTable}>
+        <c-table-component></c-table-component>
+    </template>
+</template>
+```
+
+## Real-Time Updates with Platform Events
+
+Subscribe to platform events for real-time data updates.
+
+```javascript
+import { LightningElement } from 'lwc';
+import { subscribe, unsubscribe, onError } from 'lightning/empApi';
+
+export default class PlatformEventSubscriber extends LightningElement {
+    channelName = '/event/Order_Event__e';
+    subscription = {};
+    receivedEvents = [];
+
+    connectedCallback() {
+        this.registerErrorListener();
+        this.handleSubscribe();
+    }
+
+    disconnectedCallback() {
+        this.handleUnsubscribe();
+    }
+
+    registerErrorListener() {
+        onError(error => {
+            console.error('EMP API error:', error);
+        });
+    }
+
+    async handleSubscribe() {
+        const messageCallback = (response) => {
+            console.log('New event received:', response);
+            this.receivedEvents = [...this.receivedEvents, response];
+        };
+
+        this.subscription = await subscribe(
+            this.channelName,
+            -1,
+            messageCallback
+        );
+    }
+
+    async handleUnsubscribe() {
+        await unsubscribe(this.subscription);
+    }
+}
+```
+
+## Debouncing User Input
+
+Prevent excessive API calls by debouncing user input.
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class DebouncedSearch extends LightningElement {
+    searchTerm = '';
+    delayTimeout;
+
+    handleSearchChange(event) {
+        const searchTerm = event.target.value;
+        
+        // Clear previous timeout
+        clearTimeout(this.delayTimeout);
+        
+        // Set new timeout
+        this.delayTimeout = setTimeout(() => {
+            this.searchTerm = searchTerm;
+            this.performSearch();
+        }, 300); // 300ms delay
+    }
+
+    async performSearch() {
+        if (this.searchTerm.length < 2) {
+            return;
+        }
+        // Perform search
+        console.log('Searching for:', this.searchTerm);
+    }
+}
+```
+
+## Polling for Updates
+
+Periodically check for data updates.
+
+```javascript
+import { LightningElement } from 'lwc';
+import getJobStatus from '@salesforce/apex/JobController.getJobStatus';
+
+export default class PollingComponent extends LightningElement {
+    jobId;
+    jobStatus = 'Pending';
+    pollInterval;
+
+    connectedCallback() {
+        // Start polling every 5 seconds
+        this.pollInterval = setInterval(() => {
+            this.checkJobStatus();
+        }, 5000);
+    }
+
+    disconnectedCallback() {
+        // Clean up interval
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+        }
+    }
+
+    async checkJobStatus() {
+        try {
+            const status = await getJobStatus({ jobId: this.jobId });
+            this.jobStatus = status;
+
+            // Stop polling if job is complete
+            if (status === 'Completed' || status === 'Failed') {
+                clearInterval(this.pollInterval);
+            }
+        } catch (error) {
+            console.error('Error checking job status:', error);
+        }
+    }
+}
+```
+
+## Progress Indicators
+
+Show progress for long-running operations.
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class ProgressIndicator extends LightningElement {
+    isLoading = false;
+    progress = 0;
+    maxSteps = 5;
+
+    async performMultiStepOperation() {
+        this.isLoading = true;
+        this.progress = 0;
+
+        for (let step = 1; step <= this.maxSteps; step++) {
+            await this.performStep(step);
+            this.progress = (step / this.maxSteps) * 100;
+        }
+
+        this.isLoading = false;
+    }
+
+    async performStep(stepNumber) {
+        // Simulate async operation
+        return new Promise(resolve => {
+            setTimeout(() => {
+                console.log(`Step ${stepNumber} complete`);
+                resolve();
+            }, 1000);
+        });
+    }
+}
+```
+
+```html
+<template>
+    <template lwc:if={isLoading}>
+        <lightning-progress-bar
+            value={progress}
+            size="large"
+        ></lightning-progress-bar>
+    </template>
+    
+    <lightning-button
+        label="Start Process"
+        onclick={performMultiStepOperation}
+        disabled={isLoading}
+    ></lightning-button>
+</template>
+```
+
+## Best Practices
+
+### Use @wire for Initial Load, Imperative for Actions
+
+```javascript
+// Use @wire for initial data load
+@wire(getAccounts)
+accounts;
+
+// Use imperative for user-triggered actions
+async handleDelete(accountId) {
+    await deleteAccount({ accountId });
+    // Refresh @wire data
+    refreshApex(this.accounts);
+}
+```
+
+### Handle Errors Gracefully
+
+```javascript
+async loadData() {
+    try {
+        this.data = await getData();
+    } catch (error) {
+        this.handleError(error);
+    }
+}
+
+handleError(error) {
+    let message = 'Unknown error';
+    if (error.body && error.body.message) {
+        message = error.body.message;
+    }
+    this.dispatchEvent(
+        new ShowToastEvent({
+            title: 'Error',
+            message: message,
+            variant: 'error'
+        })
+    );
+}
+```
+
+### Clean Up Resources
+
+```javascript
+disconnectedCallback() {
+    // Clear intervals
+    if (this.pollInterval) {
+        clearInterval(this.pollInterval);
+    }
+    
+    // Clear timeouts
+    if (this.delayTimeout) {
+        clearTimeout(this.delayTimeout);
+    }
+    
+    // Unsubscribe from events
+    if (this.subscription) {
+        unsubscribe(this.subscription);
+    }
+}
+```
+
+## Related Resources
+
+- [Call Apex Methods](https://developer.salesforce.com/docs/component-library/documentation/en/lwc/lwc.apex)
+- [Navigate Between Pages](https://developer.salesforce.com/docs/component-library/documentation/en/lwc/lwc.use_navigate)
+- [Platform Events](https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/)

@@ -1,0 +1,282 @@
+---
+title: Apex Integration
+description: Call Apex methods from Lightning Web Components using wire service and imperative approaches
+---
+
+Lightning Web Components can call Apex methods to interact with Salesforce data and business logic. You can use either the `@wire` decorator for reactive data or call methods imperatively for user-initiated actions.
+
+## Apex Controller Setup
+
+Create Apex methods with the `@AuraEnabled` annotation. Use `cacheable=true` for read-only methods that can be cached.
+
+```apex
+public with sharing class ContactController {
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> getContactList() {
+        return [
+            SELECT
+                Id,
+                Name,
+                FirstName,
+                LastName,
+                Title,
+                Phone,
+                Email,
+                Picture__c
+            FROM Contact
+            WHERE Picture__c != NULL
+            WITH USER_MODE
+            LIMIT 10
+        ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> findContacts(String searchKey) {
+        String key = '%' + searchKey + '%';
+        return [
+            SELECT Id, Name, Title, Phone, Email, Picture__c
+            FROM Contact
+            WHERE Name LIKE :key AND Picture__c != NULL
+            WITH USER_MODE
+            LIMIT 10
+        ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static Contact getSingleContact() {
+        return [
+            SELECT Id, Name, Title, Phone, Email, Picture__c
+            FROM Contact
+            WITH USER_MODE
+            LIMIT 1
+        ];
+    }
+
+    @AuraEnabled
+    public static void updateContacts(List<Contact> contactsForUpdate) {
+        // Make sure we can update the database before trying to update
+        if (!Schema.sObjectType.Contact.isUpdateable()) {
+            throw new SecurityException(
+                'Insufficient permissions to update contacts'
+            );
+        }
+        update contactsForUpdate;
+    }
+
+    @AuraEnabled
+    public static void updateContact(
+        Id recordId,
+        String firstName,
+        String lastName
+    ) {
+        Contact contact = new Contact(
+            Id = recordId,
+            FirstName = firstName,
+            LastName = lastName
+        );
+        update contact;
+    }
+}
+```
+
+### Apex Method Requirements
+
+- Methods must be **static**
+- Annotate with **@AuraEnabled**
+- Use **cacheable=true** for read-only methods
+- Use **WITH USER_MODE** to enforce sharing rules and field-level security
+- Classes should use **with sharing** to enforce record-level security
+
+## Wire Service Approach
+
+Use `@wire` for methods that load data automatically when a component initializes or when reactive parameters change.
+
+### Wire to Property
+
+The simplest approach for displaying data without transformation.
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class ApexWireMethodToProperty extends LightningElement {
+    @wire(getContactList) contacts;
+}
+```
+
+**When to use:**
+- Simple data display
+- No data transformation needed
+- Minimal error handling
+
+**Access the data:**
+```javascript
+// In template
+{contacts.data}
+
+// In JavaScript
+this.contacts.data
+this.contacts.error
+```
+
+### Wire to Function
+
+Provides more control for processing results and handling errors.
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class ApexWireMethodToFunction extends LightningElement {
+    contacts;
+    error;
+
+    @wire(getContactList)
+    wiredContacts({ error, data }) {
+        if (data) {
+            this.contacts = data;
+            this.error = undefined;
+        } else if (error) {
+            this.error = error;
+            this.contacts = undefined;
+        }
+    }
+}
+```
+
+**When to use:**
+- Data transformation required
+- Custom error handling
+- Setting multiple properties
+- Conditional logic based on results
+
+## Imperative Approach
+
+Call Apex methods imperatively for user-triggered actions like button clicks.
+
+```javascript
+import { LightningElement } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class ApexImperativeMethod extends LightningElement {
+    contacts;
+    error;
+
+    async handleLoad() {
+        try {
+            this.contacts = await getContactList();
+            this.error = undefined;
+        } catch (error) {
+            this.contacts = undefined;
+            this.error = error;
+        }
+    }
+}
+```
+
+**When to use:**
+- User-initiated actions (button clicks, form submissions)
+- Multiple sequential Apex calls
+- Conditional Apex calls
+- Need to call methods dynamically
+
+### Parameters
+
+Pass parameters to Apex methods using an object:
+
+```javascript
+import findContacts from '@salesforce/apex/ContactController.findContacts';
+
+async searchContacts() {
+    try {
+        const contacts = await findContacts({ searchKey: this.searchTerm });
+        this.results = contacts;
+    } catch (error) {
+        this.handleError(error);
+    }
+}
+```
+
+## Comparison: Wire vs Imperative
+
+<Tabs>
+  <Tab title="Wire Service">
+    ```javascript
+    @wire(getContactList) contacts;
+    ```
+    
+    **Advantages:**
+    - Automatic caching
+    - Reactive to parameter changes
+    - No manual lifecycle management
+    - Shared cache across components
+    
+    **Best for:**
+    - Loading data on component initialization
+    - Reactive data that updates with parameters
+    - Read-only operations
+  </Tab>
+  <Tab title="Imperative">
+    ```javascript
+    async handleLoad() {
+        this.contacts = await getContactList();
+    }
+    ```
+    
+    **Advantages:**
+    - Full control over when to call
+    - Can chain multiple calls
+    - Works with non-cacheable methods
+    - Easier to test
+    
+    **Best for:**
+    - User-triggered actions
+    - Create, update, delete operations
+    - Dynamic method calls
+    - Sequential operations
+  </Tab>
+</Tabs>
+
+## Error Handling
+
+<CodeGroup>
+```javascript Wire Service
+@wire(getContactList)
+wiredContacts({ error, data }) {
+    if (data) {
+        this.contacts = data;
+    } else if (error) {
+        console.error('Error loading contacts:', error);
+        this.showError(error);
+    }
+}
+```
+
+```javascript Imperative
+async loadContacts() {
+    try {
+        this.contacts = await getContactList();
+    } catch (error) {
+        console.error('Error loading contacts:', error);
+        this.showError(error);
+    }
+}
+```
+</CodeGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Cacheable" icon="bolt">
+    Set `cacheable=true` on read-only Apex methods for better performance
+  </Card>
+  <Card title="Enforce Security" icon="shield">
+    Always use `WITH USER_MODE` and `with sharing` to respect user permissions
+  </Card>
+  <Card title="Choose the Right Approach" icon="route">
+    Use @wire for automatic loading, imperative for user actions
+  </Card>
+  <Card title="Handle Errors" icon="triangle-exclamation">
+    Always implement error handling for better user experience
+  </Card>
+</CardGroup>

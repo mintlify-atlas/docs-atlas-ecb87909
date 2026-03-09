@@ -1,0 +1,338 @@
+---
+title: Installation
+description: Install Lightning Web Components Recipes using a Scratch Org, Unlocked Package, or Developer Edition Org
+---
+
+## Choose Your Installation Method
+
+There are three ways to install Lightning Web Components Recipes. Choose the method that best fits your needs:
+
+<CardGroup cols={3}>
+  <Card title="Scratch Org" icon="code">
+    **Recommended for developers**
+    
+    Full development environment with source control
+  </Card>
+  <Card title="Unlocked Package" icon="box">
+    **Easiest installation**
+    
+    One-click install, no local tools required
+  </Card>
+  <Card title="Developer Edition" icon="building">
+    **Permanent environment**
+    
+    Deploy to a persistent org for long-term use
+  </Card>
+</CardGroup>
+
+---
+
+## Method 1: Scratch Org Installation
+
+<Note>
+  **Recommended for developers** who want to experience both the app and the code with full source control.
+</Note>
+
+### Prerequisites
+
+<Steps>
+  <Step title="Set up your environment">
+    Follow the steps in the [Quick Start: Lightning Web Components](https://trailhead.salesforce.com/content/learn/projects/quick-start-lightning-web-components/) Trailhead project:
+    
+    - Enable Dev Hub in your Trailhead Playground
+    - Install Salesforce CLI
+    - Install Visual Studio Code
+    - Install the Visual Studio Code Salesforce extensions, including the Lightning Web Components extension
+  </Step>
+</Steps>
+
+### Installation Steps
+
+<Steps>
+  <Step title="Authorize your Dev Hub">
+    If you haven't already done so, authorize your hub org and provide it with an alias:
+    
+    ```bash
+    sf org login web -d -a myhuborg
+    ```
+  </Step>
+  
+  <Step title="Clone the repository">
+    Clone the lwc-recipes repository from GitHub:
+    
+    ```bash
+    git clone https://github.com/trailheadapps/lwc-recipes
+    cd lwc-recipes
+    ```
+  </Step>
+  
+  <Step title="Create a scratch org">
+    Create a scratch org and provide it with an alias:
+    
+    ```bash
+    sf org create scratch -d -f config/project-scratch-def.json -a lwc-recipes
+    ```
+    
+    <Note>
+      This creates a scratch org configured for the LWC Recipes app using the project scratch definition file.
+    </Note>
+  </Step>
+  
+  <Step title="Push the source code">
+    Deploy the app to your scratch org:
+    
+    ```bash
+    sf project deploy start
+    ```
+  </Step>
+  
+  <Step title="Assign the permission set">
+    Assign the **recipes** permission set to the default user:
+    
+    ```bash
+    sf org assign permset -n recipes
+    ```
+  </Step>
+  
+  <Step title="Import sample data">
+    Load the sample Account and Contact data:
+    
+    ```bash
+    sf data tree import -p ./data/data-plan.json
+    ```
+  </Step>
+  
+  <Step title="Open your scratch org">
+    Launch the scratch org in your browser:
+    
+    ```bash
+    sf org open
+    ```
+  </Step>
+  
+  <Step title="Activate a theme">
+    In **Setup**, under **Themes and Branding**, activate the **Recipes Lite** or **Recipes Blue** theme.
+  </Step>
+  
+  <Step title="Launch the app">
+    In App Launcher, click **View All** then select the **LWC** app.
+  </Step>
+</Steps>
+
+---
+
+## Method 2: Unlocked Package Installation
+
+<Note>
+  **Easiest installation method** - No local development tools required. Perfect for quickly experiencing the app.
+</Note>
+
+### Prerequisites
+
+- A Salesforce org: [Developer Edition Org](https://developer.salesforce.com/signup) (free) or [Trailhead Playground](https://trailhead.salesforce.com/)
+- Start from a **brand-new environment** to avoid conflicts
+
+### Installation Steps
+
+<Steps>
+  <Step title="Log in to your org">
+    Open and log in to your Salesforce org.
+  </Step>
+  
+  <Step title="Install the package">
+    Click this link to install the Recipes unlocked package:
+    
+    [Install LWC Recipes Package](https://login.salesforce.com/packaging/installPackage.apexp?p0=04tKi000000kbj6IAA)
+    
+    <Note>
+      Package ID: `04tKi000000kbj6IAA` (Version 65.0.0-14)
+    </Note>
+  </Step>
+  
+  <Step title="Select installation option">
+    Select **Install for All Users** when prompted.
+  </Step>
+  
+  <Step title="Import sample data">
+    Import Account and Contacts data:
+    
+    1. Download the CSV file: [Accounts-Contacts.csv](https://raw.githubusercontent.com/trailheadapps/lwc-recipes/main/data/Accounts-Contacts.csv)
+       - Right-click and save as **Accounts-Contacts.csv**
+    
+    2. In **Setup**, search for **Data Import Wizard** in the Quick Find box
+    
+    3. Click **Launch Wizard**
+    
+    4. Select **Accounts and Contacts**, then click **Add New Records**
+    
+    5. Drag the **Accounts-Contacts.csv** file to the upload area
+    
+    6. Click **Next**, **Next**, and **Start Import**
+  </Step>
+  
+  <Step title="Assign permission set (if needed)">
+    <Warning>
+      If you're completing the [Quick Start Trailhead project](https://trailhead.salesforce.com/en/content/learn/projects/quick-start-lwc-recipes-app), this step is **required**. Otherwise, skip it.
+    </Warning>
+    
+    1. Go to **Setup > Users > Permission Sets**
+    2. Click **recipes**
+    3. Click **Manage Assignments**
+    4. Check your user and click **Add Assignments**
+  </Step>
+  
+  <Step title="Activate a theme">
+    In **Setup**, under **Themes and Branding**, activate the **Recipes Lite** or **Recipes Blue** theme.
+  </Step>
+  
+  <Step title="Launch the app">
+    In App Launcher, click **View All** then select the **LWC Recipes** app.
+  </Step>
+</Steps>
+
+---
+
+## Method 3: Developer Edition / Trailhead Playground
+
+<Note>
+  Deploy to a **permanent environment** using source deployment. Ideal for Trailhead badges or long-term testing.
+</Note>
+
+### Prerequisites
+
+- Salesforce CLI installed
+- A [Developer Edition Org](https://developer.salesforce.com/signup) (free) or [Trailhead Playground](https://trailhead.salesforce.com/)
+- Start from a **brand-new environment** to avoid conflicts
+
+### Installation Steps
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the lwc-recipes repository:
+    
+    ```bash
+    git clone https://github.com/trailheadapps/lwc-recipes
+    cd lwc-recipes
+    ```
+  </Step>
+  
+  <Step title="Authorize your org">
+    Authorize your Trailhead Playground or Developer org with an alias:
+    
+    ```bash
+    sf org login web -s -a mydevorg
+    ```
+  </Step>
+  
+  <Step title="Deploy the app">
+    Deploy the source code to your org:
+    
+    ```bash
+    sf project deploy start -d force-app
+    ```
+  </Step>
+  
+  <Step title="Assign the permission set">
+    Assign the `recipes` permission set to the default user:
+    
+    ```bash
+    sf org assign permset -n recipes
+    ```
+  </Step>
+  
+  <Step title="Import sample data">
+    Import the sample data:
+    
+    ```bash
+    sf data tree import -p ./data/data-plan.json
+    ```
+  </Step>
+  
+  <Step title="Open your org">
+    If your org isn't already open, launch it:
+    
+    ```bash
+    sf org open -o mydevorg
+    ```
+  </Step>
+  
+  <Step title="Activate a theme">
+    In **Setup**, under **Themes and Branding**, activate the **Recipes Lite** or **Recipes Blue** theme.
+  </Step>
+  
+  <Step title="Launch the app">
+    In App Launcher, select the **LWC** app.
+  </Step>
+</Steps>
+
+---
+
+## Optional: Development Tools Setup
+
+### Code Formatting with Prettier
+
+[Prettier](https://prettier.io/) ensures consistent code formatting across the codebase.
+
+1. Install the [Prettier VSCode extension](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+2. The `.prettierignore` and `.prettierrc` files are included in the repository
+
+<Warning>
+  The current Apex Prettier plugin requires **Java 11 or above**.
+</Warning>
+
+### Code Linting with ESLint
+
+[ESLint](https://eslint.org/) identifies stylistic errors and erroneous constructs in JavaScript.
+
+1. Install the [Salesforce Extension Pack](https://marketplace.visualstudio.com/items?itemName=salesforce.salesforcedx-vscode-lwc) for VSCode
+2. The `.eslintignore` file is included to exclude specific files from linting
+
+### Pre-commit Hooks
+
+Set up automatic code formatting and linting before each commit:
+
+<Steps>
+  <Step title="Install Node.js">
+    Install [Node.js](https://nodejs.org) if you haven't already.
+    
+    <Note>
+      Mac users: Verify that Xcode command line tools are installed before proceeding.
+    </Note>
+  </Step>
+  
+  <Step title="Install dependencies">
+    Run npm install in the project root:
+    
+    ```bash
+    npm install
+    ```
+  </Step>
+  
+  <Step title="Use formatting commands">
+    Prettier and ESLint now run automatically on commit. You can also run them manually:
+    
+    ```bash
+    npm run lint
+    npm run prettier
+    ```
+  </Step>
+</Steps>
+
+## Code Tours
+
+Code Tours provide guided walkthroughs through the app code.
+
+Install the [CodeTour VSCode extension](https://marketplace.visualstudio.com/items?itemName=vsls-contrib.codetour) to access interactive code tours.
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Learn how to explore components and start building
+  </Card>
+  <Card title="Component Examples" icon="code" href="/components">
+    Browse the complete catalog of 123+ recipes
+  </Card>
+</CardGroup>

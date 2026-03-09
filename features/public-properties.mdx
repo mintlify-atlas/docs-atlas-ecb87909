@@ -1,0 +1,180 @@
+---
+title: Public Properties
+description: Learn how to use the @api decorator to expose public properties in Lightning Web Components
+---
+
+## Overview
+
+The `@api` decorator marks a property as public, making it accessible from parent components. Public properties enable parent-to-child communication and are reactive by default.
+
+<Note>
+Public properties decorated with `@api` are reactive. When a parent component changes the value, the child component automatically re-renders.
+</Note>
+
+## Basic Usage
+
+### Simple Public Property
+
+Expose a property to parent components:
+
+```javascript
+// chartBar.js
+import { LightningElement, api } from 'lwc';
+
+export default class ChartBar extends LightningElement {
+    @api percentage;
+
+    get style() {
+        return `width: ${this.percentage}%`;
+    }
+}
+```
+
+Parent component passes data:
+
+```html
+<!-- apiProperty.html -->
+<template>
+    <lightning-input
+        label="Percentage"
+        type="number"
+        value={percentage}
+        onchange={handlePercentageChange}
+    ></lightning-input>
+    <c-chart-bar percentage={percentage}></c-chart-bar>
+</template>
+```
+
+```javascript
+// apiProperty.js
+import { LightningElement } from 'lwc';
+
+export default class ApiProperty extends LightningElement {
+    percentage = 50;
+
+    handlePercentageChange(event) {
+        this.percentage = event.target.value;
+    }
+}
+```
+
+**Source**: `force-app/main/default/lwc/apiProperty/apiProperty.js:3-9`
+
+## Multiple Public Properties
+
+A component can expose multiple public properties:
+
+```javascript
+// child.js
+import { LightningElement, api } from 'lwc';
+
+export default class Child extends LightningElement {
+    @api firstName;
+    @api lastName;
+
+    get fullName() {
+        return `${this.firstName} ${this.lastName}`;
+    }
+}
+```
+
+```html
+<!-- child.html -->
+<template>
+    <p>Hello, {fullName}!</p>
+</template>
+```
+
+**Source**: `force-app/main/default/lwc/child/child.js:3-10`
+
+## Getters and Setters
+
+Use `@api` with getters and setters to add custom logic when properties change:
+
+```javascript
+// todoList.js
+import { LightningElement, api } from 'lwc';
+
+export default class TodoList extends LightningElement {
+    filteredTodos = [];
+    _todos = [];
+    priorityFilter = false;
+
+    @api
+    get todos() {
+        return this._todos;
+    }
+    set todos(value) {
+        this._todos = value;
+        this.filterTodos();
+    }
+
+    filterTodos() {
+        if (this.priorityFilter) {
+            this.filteredTodos = this._todos.filter(
+                (todo) => todo.priority === true
+            );
+        } else {
+            this.filteredTodos = this._todos;
+        }
+    }
+}
+```
+
+<Note>
+When using getters and setters with `@api`, place the decorator before the getter, not the setter.
+</Note>
+
+**Source**: `force-app/main/default/lwc/todoList/todoList.js:14-21`
+
+## Spreading Properties
+
+Pass multiple properties as an object using the spread syntax:
+
+```javascript
+// apiSpread.js
+import { LightningElement } from 'lwc';
+
+export default class ApiSpread extends LightningElement {
+    props = {
+        firstName: 'Amy',
+        lastName: 'Taylor'
+    };
+
+    handleChange(event) {
+        const field = event.target.name;
+        if (field === 'firstName') {
+            this.props = {
+                firstName: event.target.value,
+                lastName: this.props.lastName
+            };
+        } else if (field === 'lastName') {
+            this.props = {
+                firstName: this.props.firstName,
+                lastName: event.target.value
+            };
+        }
+    }
+}
+```
+
+In the template, use the spread operator:
+
+```html
+<c-child {...props}></c-child>
+```
+
+**Source**: `force-app/main/default/lwc/apiSpread/apiSpread.js:3-23`
+
+## Best Practices
+
+- **Reactive by default**: Public properties automatically trigger re-renders when changed
+- **Use private fields**: Store internal state in private properties (prefixed with `_`)
+- **Immutability**: Always create new objects/arrays instead of mutating existing ones
+- **Validation**: Add validation logic in setters before assigning values
+- **Computed properties**: Use getters to derive values from public properties
+
+## Related Resources
+
+- [Public Methods](/features/public-methods)
+- [Lifecycle Hooks](/features/lifecycle-hooks)

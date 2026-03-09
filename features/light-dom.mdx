@@ -1,0 +1,294 @@
+---
+title: Light DOM
+description: Learn about Light DOM rendering in Lightning Web Components and how it differs from Shadow DOM
+---
+
+## Overview
+
+Lightning Web Components typically render in Shadow DOM, which provides style encapsulation and DOM isolation. However, you can opt into Light DOM rendering for specific use cases where Shadow DOM restrictions are too limiting.
+
+<Note>
+Light DOM is available in API version 58.0 and later. Use it when you need direct DOM access from parent components or better integration with global styles.
+</Note>
+
+## Shadow DOM vs Light DOM
+
+### Shadow DOM (Default)
+
+- **Encapsulated styles**: CSS defined in the component only affects that component
+- **Isolated DOM**: Parent components cannot query child component internals
+- **Standard behavior**: Default for all Lightning Web Components
+
+### Light DOM
+
+- **Shared styles**: Component inherits styles from parent and global CSS
+- **Accessible DOM**: Parent components can query child component elements
+- **Legacy compatibility**: Better integration with older Salesforce features
+
+## Enabling Light DOM
+
+Set the `renderMode` static property to `'light'`:
+
+```javascript
+// lightDomQueryChild.js
+import { LightningElement } from 'lwc';
+
+export default class LightDomQueryChild extends LightningElement {
+    static renderMode = 'light';
+
+    handleButtonClick() {
+        // Within Light DOM components, use this.querySelector
+        // instead of this.template.querySelector
+        this.querySelector('p.lightDomParagraph').innerText =
+            'Text changed by child';
+    }
+}
+```
+
+**Source**: `force-app/main/default/lwc/lightDomQueryChild/lightDomQueryChild.js:3-11`
+
+Update the template with the `lwc:render-mode` directive:
+
+```html
+<!-- lightDomQueryChild.html -->
+<template lwc:render-mode="light">
+    <div class="slds-var-p-around_small">
+        <p class="lightDomParagraph">Click any button to change this text</p>
+        <div class="slds-var-m-top_small">
+            <lightning-button
+                onclick={handleButtonClick}
+                label="Change Text"
+            ></lightning-button>
+        </div>
+    </div>
+</template>
+```
+
+**Source**: `force-app/main/default/lwc/lightDomQueryChild/lightDomQueryChild.html:1-11`
+
+## Querying Light DOM Elements
+
+### From Within the Component
+
+Use `this.querySelector()` instead of `this.template.querySelector()`:
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class LightDomQueryChild extends LightningElement {
+    static renderMode = 'light';
+
+    handleButtonClick() {
+        // Light DOM: use this.querySelector
+        this.querySelector('p.lightDomParagraph').innerText =
+            'Text changed by child';
+    }
+}
+```
+
+### From Parent Components
+
+Parent components can directly access elements inside Light DOM children:
+
+```javascript
+// lightDomQuery.js
+import { LightningElement } from 'lwc';
+
+export default class LightDomQuery extends LightningElement {
+    handleButtonClick() {
+        // Elements inside Light DOM child components are directly accessible
+        this.template.querySelector('p.lightDomParagraph').innerText =
+            'Text changed by parent';
+    }
+}
+```
+
+**Source**: `force-app/main/default/lwc/lightDomQuery/lightDomQuery.js:4-8`
+
+<Note>
+In Shadow DOM, parent components cannot query elements inside child components. Light DOM removes this restriction.
+</Note>
+
+## Key Differences
+
+### DOM Queries
+
+**Shadow DOM:**
+```javascript
+// Access own elements
+this.template.querySelector('.my-element');
+
+// Cannot access child component internals
+this.template.querySelector('c-child .internal'); // Returns null
+```
+
+**Light DOM:**
+```javascript
+// Access own elements (no template property)
+this.querySelector('.my-element');
+
+// Can access child component internals if child is also Light DOM
+this.querySelector('c-child .internal'); // Works!
+```
+
+### Event Handling
+
+**Shadow DOM:**
+- Events bubble through shadow boundaries
+- `event.target` may be retargeted
+
+**Light DOM:**
+- Standard DOM event propagation
+- `event.target` is the actual element
+
+### Styling
+
+**Shadow DOM:**
+```css
+/* Styles are scoped to component */
+.my-class {
+    color: blue;
+}
+```
+
+**Light DOM:**
+```css
+/* Styles can be affected by parent/global CSS */
+.my-class {
+    color: blue; /* May be overridden by parent styles */
+}
+```
+
+## Use Cases for Light DOM
+
+### 1. Third-Party Library Integration
+
+Some libraries need direct DOM access:
+
+```javascript
+import { LightningElement } from 'lwc';
+import jQueryLib from '@salesforce/resourceUrl/jQuery';
+import { loadScript } from 'lightning/platformResourceLoader';
+
+export default class JQueryComponent extends LightningElement {
+    static renderMode = 'light';
+
+    async renderedCallback() {
+        await loadScript(this, jQueryLib);
+        // jQuery can now access component elements
+        window.$('.my-element').fadeIn();
+    }
+}
+```
+
+### 2. Global Style Application
+
+Apply Salesforce Lightning Design System (SLDS) utilities:
+
+```html
+<template lwc:render-mode="light">
+    <div class="slds-grid slds-wrap">
+        <div class="slds-col slds-size_1-of-2">
+            <!-- SLDS utilities work directly -->
+        </div>
+    </div>
+</template>
+```
+
+### 3. Accessibility Testing Tools
+
+Some accessibility testing tools work better with Light DOM:
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class AccessibleForm extends LightningElement {
+    static renderMode = 'light';
+    
+    // Accessibility tools can fully inspect the DOM tree
+}
+```
+
+### 4. Parent-Child DOM Manipulation
+
+When parent needs direct control over child elements:
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class ParentComponent extends LightningElement {
+    handleHighlight() {
+        // Directly manipulate child component's elements
+        const childElement = this.template.querySelector('c-light-child .highlight');
+        childElement.classList.add('highlighted');
+    }
+}
+```
+
+## Limitations
+
+<Note>
+Light DOM has important limitations compared to Shadow DOM. Consider these carefully before using Light DOM.
+</Note>
+
+- **No style encapsulation**: Component styles can conflict with parent/global styles
+- **No slot support**: `<slot>` elements don't work in Light DOM
+- **Security considerations**: More vulnerable to XSS if not careful with DOM manipulation
+- **Performance**: Shadow DOM can have better performance in some scenarios
+
+## Migration Considerations
+
+### Converting from Shadow DOM to Light DOM
+
+1. Add `static renderMode = 'light';` to the class
+2. Add `lwc:render-mode="light"` to the template
+3. Replace `this.template.querySelector()` with `this.querySelector()`
+4. Replace `this.template.querySelectorAll()` with `this.querySelectorAll()`
+5. Remove `<slot>` usage (not supported in Light DOM)
+6. Review CSS for potential conflicts with global styles
+
+### Example
+
+**Before (Shadow DOM):**
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class MyComponent extends LightningElement {
+    handleClick() {
+        this.template.querySelector('.my-element').focus();
+    }
+}
+```
+
+**After (Light DOM):**
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class MyComponent extends LightningElement {
+    static renderMode = 'light';
+
+    handleClick() {
+        this.querySelector('.my-element').focus();
+    }
+}
+```
+
+## Best Practices
+
+- **Default to Shadow DOM**: Only use Light DOM when you have a specific need
+- **Namespace CSS classes**: Prevent style conflicts by using unique class names
+- **Document the choice**: Comment why Light DOM is needed for future maintainers
+- **Test thoroughly**: Ensure no style conflicts with parent components
+- **Validate accessibility**: Light DOM can affect screen reader behavior
+
+## When NOT to Use Light DOM
+
+- **Reusable components**: Shadow DOM provides better encapsulation
+- **Style isolation needed**: Components that should look the same everywhere
+- **Using slots**: Slots only work in Shadow DOM
+- **Security-sensitive**: Shadow DOM provides an extra layer of isolation
+
+## Related Resources
+
+- [Public Properties](/features/public-properties)
+- [Lifecycle Hooks](/features/lifecycle-hooks)

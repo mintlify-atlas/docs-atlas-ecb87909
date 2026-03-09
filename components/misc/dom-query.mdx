@@ -1,0 +1,248 @@
+---
+title: DOM Query
+description: Query and manipulate DOM elements in Lightning Web Components
+---
+
+## Overview
+
+The `miscDomQuery` component demonstrates how to query DOM elements within a Lightning Web Component using `this.template.querySelectorAll()`. This is useful for accessing component state from rendered elements.
+
+## Source Component
+
+- **miscDomQuery** - Queries checkboxes to determine which are selected
+
+## Key Features
+
+- Template-scoped queries
+- Array manipulation methods
+- Filtered element selection
+- Property access on queried elements
+
+## Implementation
+
+### Basic DOM Query
+
+Use `this.template.querySelectorAll()` to find elements:
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class MiscDomQuery extends LightningElement {
+    selection;
+
+    handleCheckboxChange() {
+        // Query all lightning-input elements
+        const checked = Array.from(
+            this.template.querySelectorAll('lightning-input')
+        )
+            // Filter to only checked items
+            .filter((element) => element.checked)
+            // Map to their labels
+            .map((element) => element.label);
+        
+        this.selection = checked.join(', ');
+    }
+}
+```
+
+### Template
+
+```html
+<template>
+    <lightning-input
+        label="Category 1"
+        type="checkbox"
+        onchange={handleCheckboxChange}
+    ></lightning-input>
+    <lightning-input
+        label="Category 2"
+        type="checkbox"
+        onchange={handleCheckboxChange}
+    ></lightning-input>
+    <lightning-input
+        label="Category 3"
+        type="checkbox"
+        onchange={handleCheckboxChange}
+    ></lightning-input>
+
+    <p>Checked items: {selection}</p>
+</template>
+```
+
+## Query Methods
+
+### querySelector()
+
+Returns the first matching element:
+
+```javascript
+const firstInput = this.template.querySelector('lightning-input');
+if (firstInput) {
+    console.log(firstInput.value);
+}
+```
+
+### querySelectorAll()
+
+Returns a NodeList of all matching elements:
+
+```javascript
+const allInputs = this.template.querySelectorAll('lightning-input');
+// Convert to array for array methods
+const inputArray = Array.from(allInputs);
+```
+
+<Note>
+`querySelectorAll()` returns a NodeList, not an Array. Use `Array.from()` to convert it to an array and access methods like `filter()`, `map()`, and `reduce()`.
+</Note>
+
+## CSS Selectors
+
+### By Tag Name
+
+```javascript
+this.template.querySelectorAll('lightning-input')
+```
+
+### By Class
+
+```javascript
+this.template.querySelectorAll('.my-class')
+```
+
+### By Data Attribute
+
+```javascript
+this.template.querySelectorAll('[data-id="myInput"]')
+```
+
+```html
+<lightning-input data-id="myInput" label="Name"></lightning-input>
+```
+
+### By Type
+
+```javascript
+this.template.querySelectorAll('lightning-input[type="checkbox"]')
+```
+
+### Combined Selectors
+
+```javascript
+this.template.querySelectorAll('lightning-input.required[type="text"]')
+```
+
+## Common Patterns
+
+### Get All Checked Items
+
+```javascript
+const checkedInputs = Array.from(
+    this.template.querySelectorAll('lightning-input')
+).filter(input => input.checked);
+```
+
+### Get All Values
+
+```javascript
+const values = Array.from(
+    this.template.querySelectorAll('lightning-input')
+).map(input => input.value);
+```
+
+### Find Specific Element
+
+```javascript
+const specificInput = Array.from(
+    this.template.querySelectorAll('lightning-input')
+).find(input => input.label === 'Email');
+```
+
+### Validate All Inputs
+
+```javascript
+const allValid = Array.from(
+    this.template.querySelectorAll('lightning-input')
+).every(input => input.reportValidity());
+```
+
+## Shadow DOM Considerations
+
+Lightning Web Components use Shadow DOM, which provides encapsulation:
+
+- `this.template` refers to the component's shadow root
+- Cannot query elements outside the component
+- Cannot be queried from parent components
+- Provides style and DOM isolation
+
+<Note>
+Unlike Aura components, you cannot use `document.querySelector()` to find elements inside a Lightning Web Component. Always use `this.template.querySelector()` or `this.template.querySelectorAll()`.
+</Note>
+
+## Accessing Element Properties
+
+Once queried, you can access element properties:
+
+```javascript
+const input = this.template.querySelector('lightning-input');
+
+// Common properties
+const value = input.value;
+const checked = input.checked;
+const label = input.label;
+const validity = input.validity;
+
+// Methods
+input.reportValidity();
+input.setCustomValidity('Error message');
+input.focus();
+```
+
+## Best Practices
+
+- Use data attributes (`data-id`) for reliable element selection
+- Convert NodeList to Array before using array methods
+- Check if elements exist before accessing properties
+- Avoid querying the DOM unnecessarily; use component state when possible
+- Query in event handlers or lifecycle hooks, not during render
+- Use `querySelector()` when you only need one element
+- Use `querySelectorAll()` when you need multiple elements
+
+### Use Data Attributes
+
+```html
+<!-- Good -->
+<lightning-input data-id="emailInput" label="Email"></lightning-input>
+```
+
+```javascript
+const emailInput = this.template.querySelector('[data-id="emailInput"]');
+```
+
+### Check for Existence
+
+```javascript
+const input = this.template.querySelector('lightning-input');
+if (input) {
+    console.log(input.value);
+}
+```
+
+## When to Use DOM Queries
+
+DOM queries are useful when:
+
+- Accessing component properties (like `checked` or `value`)
+- Calling methods on child components (like `reportValidity()`)
+- Working with dynamic lists of inputs
+- Implementing form validation
+
+Avoid DOM queries when:
+
+- You can track state in component properties
+- The data is available through event handlers
+- You're working with @api properties
+
+## Source Files
+
+- `force-app/main/default/lwc/miscDomQuery/`

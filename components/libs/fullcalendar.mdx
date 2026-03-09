@@ -1,0 +1,195 @@
+---
+title: FullCalendar Integration
+description: Integrate FullCalendar library into Lightning Web Components for calendar functionality
+---
+
+The `libsFullCalendar` component demonstrates how to integrate the FullCalendar library into a Lightning Web Component to create interactive calendars.
+
+## Source Code
+
+- Component: `force-app/main/default/lwc/libsFullCalendar/`
+- Static Resource: `force-app/main/default/staticresources/fullCalendar/` (contains `main.min.js` and `main.min.css`)
+
+## Key Features
+
+- Loads FullCalendar script and styles using `platformResourceLoader`
+- Creates a month view calendar
+- Uses manual DOM manipulation with `lwc:dom="manual"`
+- Implements error handling with error panels
+
+<Warning>
+  This component requires **Lightning Web Security (LWS)** to be enabled for your org. FullCalendar will not work with the older Lightning Locker security model.
+  
+  See [Enable Lightning Web Security](https://developer.salesforce.com/docs/component-library/documentation/en/lwc/lwc.security_lwsec_enable) for setup instructions.
+</Warning>
+
+## Loading FullCalendar Resources
+
+The component loads both JavaScript and CSS files from the static resource:
+
+```javascript
+import FULL_CALENDAR from '@salesforce/resourceUrl/fullCalendar';
+import { loadScript, loadStyle } from 'lightning/platformResourceLoader';
+
+await Promise.all([
+    loadScript(this, FULL_CALENDAR + '/main.min.js'),
+    loadStyle(this, FULL_CALENDAR + '/main.min.css')
+]);
+```
+
+<Warning>
+  When using this component in an LWR site, import the custom implementation of `loadScript` instead:
+  
+  ```javascript
+  import { loadScript } from 'c/resourceLoader';
+  ```
+  
+  This workaround addresses a Lightning Locker library limitation in LWR sites. See [Lightning Locker Limitations](https://developer.salesforce.com/docs/atlas.en-us.exp_cloud_lwr.meta/exp_cloud_lwr/template_limitations.htm).
+</Warning>
+
+## Initialization Pattern
+
+The component uses the `renderedCallback()` lifecycle hook with a guard flag:
+
+```javascript
+isCalInitialized = false;
+error;
+
+async renderedCallback() {
+    if (this.isCalInitialized) {
+        return;
+    }
+    this.isCalInitialized = true;
+
+    try {
+        await Promise.all([
+            loadScript(this, FULL_CALENDAR + '/main.min.js'),
+            loadStyle(this, FULL_CALENDAR + '/main.min.css')
+        ]);
+        this.initializeCalendar();
+    } catch (error) {
+        this.error = error;
+    }
+}
+```
+
+Key points:
+- Guard flag prevents multiple initializations
+- `Promise.all()` loads script and style in parallel
+- Errors are stored and displayed in the template
+
+## Calendar Initialization
+
+The component initializes the calendar with Lightning Web Security check:
+
+```javascript
+initializeCalendar() {
+    const calendarEl = this.template.querySelector('.calendar');
+    if (typeof FullCalendar === 'undefined') {
+        throw new Error(
+            'Could not load FullCalendar. Make sure that Lightning Web Security is enabled for your org. See link below.'
+        );
+    }
+    // eslint-disable-next-line no-undef
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth'
+    });
+    calendar.render();
+}
+```
+
+Important aspects:
+- Checks for `FullCalendar` global to ensure library loaded
+- Throws descriptive error if LWS is not enabled
+- Creates calendar with day grid month view
+- Renders calendar into the target element
+
+## Calendar Configuration
+
+The example uses a basic configuration, but FullCalendar supports extensive options:
+
+```javascript
+const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    // Additional options can include:
+    // events: [...], // Event data
+    // headerToolbar: {...}, // Toolbar configuration
+    // selectable: true, // Enable date selection
+    // eventClick: (info) => {...}, // Event click handler
+});
+```
+
+Refer to the [FullCalendar documentation](https://fullcalendar.io/docs) for all available configuration options.
+
+## Manual DOM Container
+
+The template uses a container with manual DOM control:
+
+```html
+<div class="calendar" lwc:dom="manual"></div>
+```
+
+The `lwc:dom="manual"` directive allows FullCalendar to directly manage the calendar DOM structure.
+
+## Error Handling
+
+The component displays errors using the error panel pattern:
+
+```html
+<template lwc:if={error}>
+    <c-error-panel
+        errors={error}
+        friendly-message="Failed to display FullCalendar"
+    ></c-error-panel>
+</template>
+```
+
+## Lightning Web Security Requirement
+
+FullCalendar requires LWS because:
+- It uses modern JavaScript features
+- Lightning Locker's security restrictions prevent proper initialization
+- The global `FullCalendar` object must be accessible
+
+To enable LWS:
+1. Navigate to **Setup** > **Session Settings**
+2. Enable **Use Lightning Web Security for Lightning web components**
+3. Save your changes
+
+## Setting Up Static Resources
+
+1. Download FullCalendar from [fullcalendar.io](https://fullcalendar.io/)
+2. Create a ZIP file containing:
+   - `main.min.js` (FullCalendar bundle)
+   - `main.min.css` (FullCalendar styles)
+3. Upload as a static resource named `fullCalendar`
+4. Reference it using `@salesforce/resourceUrl/fullCalendar`
+
+## Adding Events
+
+To add events to the calendar, extend the configuration:
+
+```javascript
+const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    events: [
+        {
+            title: 'Team Meeting',
+            start: '2026-03-10T10:00:00',
+            end: '2026-03-10T11:00:00'
+        },
+        {
+            title: 'Project Deadline',
+            start: '2026-03-15',
+            allDay: true
+        }
+    ]
+});
+```
+
+You can also load events from Salesforce records using Apex methods.
+
+## Related Components
+
+- [Chart.js Integration](/components/libs/chartjs) - Chart creation with Chart.js
+- [D3.js Integration](/components/libs/d3) - Data visualization with D3

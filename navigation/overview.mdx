@@ -1,0 +1,112 @@
+---
+title: Navigation Overview
+description: Learn how to navigate between pages, records, and views using NavigationMixin
+icon: compass
+---
+
+## Introduction
+
+The `NavigationMixin` from `lightning/navigation` enables Lightning Web Components to navigate to different pages and records within Salesforce. It provides a consistent navigation experience across Lightning Experience, Salesforce Mobile App, and Communities.
+
+## NavigationMixin Basics
+
+To use navigation in your component, extend your class with `NavigationMixin`:
+
+```javascript
+import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class MyComponent extends NavigationMixin(LightningElement) {
+    navigateToPage() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: '001xx000003DGBaAAO',
+                objectApiName: 'Contact',
+                actionName: 'view'
+            }
+        });
+    }
+}
+```
+
+## PageReference Structure
+
+Every navigation uses a PageReference object with the following structure:
+
+- **type** - The type of page to navigate to
+- **attributes** - Key-value pairs that describe the page
+- **state** - Additional parameters for the page (optional)
+
+## Navigation Types
+
+<CardGroup cols={2}>
+  <Card title="Record Navigation" icon="file" href="/navigation/records">
+    Navigate to record pages, create new records, and edit existing ones
+  </Card>
+  
+  <Card title="Page Navigation" icon="browser" href="/navigation/pages">
+    Navigate to home pages, named pages, and custom tabs
+  </Card>
+  
+  <Card title="Navigation Utilities" icon="wrench" href="/navigation/utilities">
+    Advanced navigation patterns including list views and related lists
+  </Card>
+</CardGroup>
+
+## Common PageReference Types
+
+<AccordionGroup>
+  <Accordion title="standard__recordPage">
+    Navigate to a record's view, edit, or clone page.
+    
+    **Attributes:**
+    - `recordId` - The record ID
+    - `objectApiName` - The API name of the object
+    - `actionName` - 'view', 'edit', or 'clone'
+  </Accordion>
+  
+  <Accordion title="standard__objectPage">
+    Navigate to an object's home, list, or new record page.
+    
+    **Attributes:**
+    - `objectApiName` - The API name of the object
+    - `actionName` - 'home', 'list', or 'new'
+  </Accordion>
+  
+  <Accordion title="standard__namedPage">
+    Navigate to standard Salesforce pages.
+    
+    **Attributes:**
+    - `pageName` - 'home', 'chatter', or other named pages
+  </Accordion>
+  
+  <Accordion title="standard__navItemPage">
+    Navigate to a custom tab.
+    
+    **Attributes:**
+    - `apiName` - The API name of the custom tab
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Tip>
+Always import `NavigationMixin` from `lightning/navigation` and apply it to your component class before using navigation methods.
+</Tip>
+
+<Warning>
+Navigation will fail if the user doesn't have permission to access the target page or record.
+</Warning>
+
+<Info>
+Use `lightning/pageReferenceUtils` to encode default field values when creating records with pre-populated data.
+</Info>
+
+## Next Steps
+
+Explore specific navigation patterns:
+
+- [Record Navigation](/navigation/records) - Work with Salesforce records
+- [Page Navigation](/navigation/pages) - Navigate to standard pages and tabs
+- [Navigation Utilities](/navigation/utilities) - Advanced navigation techniques

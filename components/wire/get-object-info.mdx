@@ -1,0 +1,98 @@
+---
+title: getObjectInfo
+description: Wire adapter to retrieve object metadata and schema information
+---
+
+The `getObjectInfo` wire adapter retrieves metadata about a Salesforce object, including fields, record types, and child relationships.
+
+## Import
+
+```javascript
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
+```
+
+## Parameters
+
+<ParamField path="objectApiName" type="string" required>
+  The API name of the object to retrieve metadata for. Use `$` prefix for reactive properties.
+</ParamField>
+
+## Basic Usage
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
+
+export default class WireGetObjectInfo extends LightningElement {
+    objectApiName;
+
+    @wire(getObjectInfo, { objectApiName: '$objectApiName' })
+    objectInfo;
+
+    handleBtnClick() {
+        this.objectApiName =
+            this.template.querySelector('lightning-input').value;
+    }
+
+    get objectInfoStr() {
+        return this.objectInfo
+            ? JSON.stringify(this.objectInfo.data, null, 2)
+            : '';
+    }
+}
+```
+
+## Reactive Parameters
+
+Use the `$` prefix to make the object API name reactive:
+
+```javascript
+@wire(getObjectInfo, { objectApiName: '$objectApiName' })
+objectInfo;
+```
+
+The wire adapter automatically re-executes when `objectApiName` changes.
+
+## Using Schema References
+
+Import object references from `@salesforce/schema`:
+
+```javascript
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
+import ACCOUNT_OBJECT from '@salesforce/schema/Account';
+
+@wire(getObjectInfo, { objectApiName: ACCOUNT_OBJECT })
+objectInfo;
+```
+
+## Response Data
+
+The object info includes:
+
+- **apiName** - Object API name
+- **label** - Object display label
+- **labelPlural** - Plural label
+- **fields** - Map of field metadata
+- **recordTypeInfos** - Available record types
+- **childRelationships** - Child object relationships
+- **themeInfo** - UI theme information
+
+## Accessing Field Metadata
+
+```javascript
+get fieldInfo() {
+    if (this.objectInfo.data) {
+        const fields = this.objectInfo.data.fields;
+        return Object.keys(fields).map(fieldName => ({
+            name: fieldName,
+            label: fields[fieldName].label,
+            type: fields[fieldName].dataType
+        }));
+    }
+    return [];
+}
+```
+
+## Source Examples
+
+- `wireGetObjectInfo` - Dynamic object metadata retrieval

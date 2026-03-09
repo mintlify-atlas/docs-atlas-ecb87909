@@ -1,0 +1,386 @@
+---
+title: Testing Lightning Web Components
+description: Learn how to test Lightning Web Components using Jest and the sfdx-lwc-jest framework
+---
+
+Lightning Web Components Recipes uses Jest as the testing framework for unit testing LWC components. The project leverages `@salesforce/sfdx-lwc-jest` to provide LWC-specific testing utilities and mocks.
+
+## Testing Setup
+
+### Jest Configuration
+
+The project's Jest configuration is defined in `jest.config.js`:
+
+```javascript
+const { jestConfig } = require('@salesforce/sfdx-lwc-jest/config');
+const setupFilesAfterEnv = jestConfig.setupFilesAfterEnv || [];
+setupFilesAfterEnv.push('<rootDir>/jest-sa11y-setup.js');
+module.exports = {
+    ...jestConfig,
+    moduleNameMapper: {
+        // Jest mocks
+        '^@salesforce/apex$': '<rootDir>/force-app/test/jest-mocks/apex',
+        '^@salesforce/schema$': '<rootDir>/force-app/test/jest-mocks/schema',
+        '^lightning/navigation$':
+            '<rootDir>/force-app/test/jest-mocks/lightning/navigation',
+        '^lightning/platformShowToastEvent$':
+            '<rootDir>/force-app/test/jest-mocks/lightning/platformShowToastEvent',
+        '^lightning/uiRecordApi$':
+            '<rootDir>/force-app/test/jest-mocks/lightning/uiRecordApi',
+        '^lightning/messageService$':
+            '<rootDir>/force-app/test/jest-mocks/lightning/messageService',
+        '^lightning/actions$':
+            '<rootDir>/force-app/test/jest-mocks/lightning/actions',
+        '^lightning/modal$':
+            '<rootDir>/force-app/test/jest-mocks/lightning/modal',
+        '^lightning/refresh$':
+            '<rootDir>/force-app/test/jest-mocks/lightning/refresh',
+        '^lightning/logger$':
+            '<rootDir>/force-app/test/jest-mocks/lightning/logger'
+    },
+    setupFiles: ['jest-canvas-mock'],
+    setupFilesAfterEnv,
+    testTimeout: 10000
+};
+```
+
+Key configuration features:
+- **Module Name Mapping**: Maps Lightning platform modules to Jest mocks for isolated testing
+- **Accessibility Testing**: Integrates `@sa11y/jest` for automated accessibility checks
+- **Test Timeout**: Sets a 10-second timeout for asynchronous tests
+
+### Test Scripts
+
+The `package.json` defines several test scripts:
+
+```json
+"scripts": {
+    "test": "npm run test:unit",
+    "test:unit": "sfdx-lwc-jest",
+    "test:unit:watch": "sfdx-lwc-jest --watch",
+    "test:unit:debug": "sfdx-lwc-jest --debug",
+    "test:unit:coverage": "sfdx-lwc-jest --coverage"
+}
+```
+
+## Writing Component Tests
+
+### Basic Component Test
+
+Here's a simple test example from the `hello` component:
+
+```javascript
+import { createElement } from '@lwc/engine-dom';
+import Hello from 'c/hello';
+
+describe('c-hello', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('displays greeting', () => {
+        // Create component
+        const element = createElement('c-hello', {
+            is: Hello
+        });
+        document.body.appendChild(element);
+
+        // Verify displayed greeting
+        const div = element.shadowRoot.querySelector('div');
+        expect(div.textContent).toBe('Hello, World!');
+    });
+
+    it('is accessible', async () => {
+        const element = createElement('c-hello', {
+            is: Hello
+        });
+        document.body.appendChild(element);
+
+        // Check accessibility
+        await expect(element).toBeAccessible();
+    });
+});
+```
+
+### Testing Wire Adapters with Parameters
+
+Example from `apexWireMethodWithParams`:
+
+```javascript
+import { createElement } from '@lwc/engine-dom';
+import ApexWireMethodWithParams from 'c/apexWireMethodWithParams';
+import findContacts from '@salesforce/apex/ContactController.findContacts';
+
+// Realistic data with a list of contacts
+const mockFindContacts = require('./data/findContacts.json');
+
+// Mock Apex wire adapter
+jest.mock(
+    '@salesforce/apex/ContactController.findContacts',
+    () => {
+        const {
+            createApexTestWireAdapter
+        } = require('@salesforce/sfdx-lwc-jest');
+        return {
+            default: createApexTestWireAdapter(jest.fn())
+        };
+    },
+    { virtual: true }
+);
+
+describe('c-apex-wire-method-with-params', () => {
+    beforeAll(() => {
+        // We use fake timers as setTimeout is used in the JavaScript file.
+        jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+        jest.clearAllMocks();
+    });
+
+    async function flushPromises() {
+        return Promise.resolve();
+    }
+
+    it('renders data of one record', async () => {
+        const USER_INPUT = 'Amy';
+
+        const element = createElement('c-apex-wire-method-with-params', {
+            is: ApexWireMethodWithParams
+        });
+        document.body.appendChild(element);
+
+        // Select input field for simulating user input
+        const inputEl = element.shadowRoot.querySelector('lightning-input');
+        inputEl.value = USER_INPUT;
+        inputEl.dispatchEvent(new CustomEvent('change'));
+
+        // Run all fake timers
+        jest.runAllTimers();
+
+        // Emit data from @wire
+        findContacts.emit(mockFindContacts);
+
+        await flushPromises();
+
+        // Validate
+        const detailEls = element.shadowRoot.querySelectorAll('p');
+        expect(detailEls.length).toBe(mockFindContacts.length);
+        expect(detailEls[0].textContent).toBe(mockFindContacts[0].Name);
+    });
+});
+```
+
+### Testing Lightning Data Service APIs
+
+Example testing `createRecord` from the Lightning Data Service:
+
+```javascript
+import { createElement } from '@lwc/engine-dom';
+import LdsCreateRecord from 'c/ldsCreateRecord';
+import { ShowToastEventName } from 'lightning/platformShowToastEvent';
+import { createRecord } from 'lightning/uiRecordApi';
+
+const mockCreateRecord = require('./data/createRecord.json');
+
+describe('c-lds-create-record', () => {
+    afterEach(() => {
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+        jest.clearAllMocks();
+    });
+
+    async function flushPromises() {
+        return Promise.resolve();
+    }
+
+    it('displays a success toast after record creation', async () => {
+        const USER_INPUT = 'Gomez Inc.';
+
+        // Assign mock value for resolved createRecord promise
+        createRecord.mockResolvedValue(mockCreateRecord);
+
+        const element = createElement('c-lds-create-record', {
+            is: LdsCreateRecord
+        });
+        document.body.appendChild(element);
+
+        // Mock handler for toast event
+        const handler = jest.fn();
+        element.addEventListener(ShowToastEventName, handler);
+
+        // Select input field for simulating user input
+        const inputEl = element.shadowRoot.querySelector(
+            'lightning-input[data-id="name"]'
+        );
+        inputEl.value = USER_INPUT;
+        inputEl.dispatchEvent(new CustomEvent('change'));
+
+        // Click button
+        const buttonEl = element.shadowRoot.querySelector('lightning-button');
+        buttonEl.click();
+
+        await flushPromises();
+
+        // Check if toast event has been fired
+        expect(handler).toHaveBeenCalled();
+        expect(handler.mock.calls[0][0].detail.variant).toBe('success');
+    });
+});
+```
+
+## Running Tests
+
+<Steps>
+
+<Step title="Run all unit tests">
+  ```bash
+  npm run test:unit
+  ```
+</Step>
+
+<Step title="Run tests in watch mode">
+  For continuous testing during development:
+  ```bash
+  npm run test:unit:watch
+  ```
+</Step>
+
+<Step title="Generate code coverage report">
+  ```bash
+  npm run test:unit:coverage
+  ```
+  
+  Coverage reports are generated in the `coverage/` directory.
+</Step>
+
+<Step title="Debug tests">
+  To debug tests in Chrome DevTools:
+  ```bash
+  npm run test:unit:debug
+  ```
+</Step>
+
+</Steps>
+
+## Testing Best Practices
+
+### 1. Clean Up After Each Test
+
+Always clean up the DOM after each test to prevent test pollution:
+
+```javascript
+afterEach(() => {
+    while (document.body.firstChild) {
+        document.body.removeChild(document.body.firstChild);
+    }
+    jest.clearAllMocks();
+});
+```
+
+### 2. Use Async/Await for Promise Handling
+
+Create a helper function for flushing promises:
+
+```javascript
+async function flushPromises() {
+    return Promise.resolve();
+}
+```
+
+### 3. Mock External Dependencies
+
+Always mock Apex controllers, Lightning platform modules, and external libraries:
+
+```javascript
+jest.mock(
+    '@salesforce/apex/ContactController.findContacts',
+    () => {
+        const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
+        return {
+            default: createApexTestWireAdapter(jest.fn())
+        };
+    },
+    { virtual: true }
+);
+```
+
+### 4. Test Accessibility
+
+Include accessibility tests for every component:
+
+```javascript
+it('is accessible', async () => {
+    const element = createElement('c-my-component', {
+        is: MyComponent
+    });
+    document.body.appendChild(element);
+
+    await expect(element).toBeAccessible();
+});
+```
+
+### 5. Use Realistic Mock Data
+
+Store mock data in JSON files in the `__tests__/data/` directory for better maintainability.
+
+### 6. Test Error States
+
+Always test both success and error scenarios:
+
+```javascript
+it('shows error panel element', async () => {
+    const element = createElement('c-wire-get-record-dynamic-contact', {
+        is: WireGetRecordDynamicContact
+    });
+    document.body.appendChild(element);
+
+    // Emit error from @wire
+    getRecord.error();
+
+    await flushPromises();
+
+    const errorPanelEl = element.shadowRoot.querySelector('c-error-panel');
+    expect(errorPanelEl).not.toBeNull();
+});
+```
+
+### 7. Test User Interactions
+
+Simulate user interactions to test event handlers:
+
+```javascript
+const inputEl = element.shadowRoot.querySelector('lightning-input');
+inputEl.value = 'Test Value';
+inputEl.dispatchEvent(new CustomEvent('change'));
+```
+
+## Continuous Integration
+
+The project runs tests automatically in CI using GitHub Actions. The workflow:
+
+1. Runs code formatting verification with Prettier
+2. Executes all LWC unit tests with coverage
+3. Uploads coverage reports to Codecov.io
+4. Deploys to a scratch org and runs Apex tests
+
+See `.github/workflows/ci.yml` for the complete CI configuration.
+
+## Accessibility Testing
+
+The project uses `@sa11y/jest` for automated accessibility testing. The setup is configured in `jest-sa11y-setup.js`:
+
+```javascript
+import { registerSa11yMatcher } from '@sa11y/jest';
+
+registerSa11yMatcher();
+```
+
+This enables the `toBeAccessible()` matcher for all tests, ensuring components meet WCAG accessibility standards.

@@ -1,0 +1,360 @@
+---
+title: GraphQL
+description: Query Salesforce data using GraphQL wire adapter with flexible filtering and relationships
+---
+
+Lightning Web Components support GraphQL queries through the UI API GraphQL endpoint. This provides a flexible alternative to REST-based wire adapters with powerful filtering and relationship traversal.
+
+## Basic GraphQL Query
+
+Use the `graphql` wire adapter with `gql` template literals to query Salesforce data.
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { gql, graphql } from 'lightning/graphql';
+
+export default class GraphqlContacts extends LightningElement {
+    @wire(graphql, {
+        query: gql`
+            query getContacts {
+                uiapi {
+                    query {
+                        Contact(
+                            where: { Picture__c: { ne: null } }
+                            first: 5
+                            orderBy: { Name: { order: ASC } }
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Name {
+                                        value
+                                    }
+                                    Phone {
+                                        value
+                                    }
+                                    # We specify an alias for this custom field to ensure
+                                    # that we can find it in the result even if Salesforce's
+                                    # referential integrity logic updates the name. API names
+                                    # for standard fields do not change, so no aliases are
+                                    # needed for those.
+                                    Picture__c: Picture__c {
+                                        value
+                                    }
+                                    Title {
+                                        value
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    graphql;
+
+    get contacts() {
+        return this.graphql.data?.uiapi.query.Contact.edges.map((edge) => ({
+            Id: edge.node.Id,
+            Name: edge.node.Name.value,
+            Phone: edge.node.Phone.value,
+            Picture__c: edge.node.Picture__c.value,
+            Title: edge.node.Title.value
+        }));
+    }
+}
+```
+
+## Query Structure
+
+All GraphQL queries follow this structure:
+
+```graphql
+query queryName {
+    uiapi {
+        query {
+            ObjectName(filters) {
+                edges {
+                    node {
+                        fieldName {
+                            value
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+### Key Components
+
+- **uiapi**: The UI API GraphQL endpoint
+- **query**: The query operation
+- **ObjectName**: The Salesforce object (e.g., Contact, Account)
+- **edges**: Connection pattern for paginated results
+- **node**: Individual record in the result set
+- **value**: The actual field value
+
+## GraphQL with Variables
+
+Use variables to create dynamic, reactive queries.
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { gql, graphql } from 'lightning/graphql';
+
+/** The delay used when debouncing event handlers before invoking Apex. */
+const DELAY = 300;
+
+export default class GraphqlVariables extends LightningElement {
+    searchKey = '';
+
+    @wire(graphql, {
+        query: gql`
+            query searchContacts($searchKey: String!, $limit: Int = 5) {
+                uiapi {
+                    query {
+                        Contact(
+                            where: { Name: { like: $searchKey } }
+                            first: $limit
+                            orderBy: { Name: { order: ASC } }
+                        ) {
+                            edges {
+                                node {
+                                    Id
+                                    Name {
+                                        value
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `,
+        variables: '$variables'
+    })
+    contacts;
+
+    /**
+     * Since GraphQL variable values are nested within an object, a getter function
+     * must be used to make the variables reactive. LWC will re-run this function &
+     * re-evaluate the GraphQL query when the component properties referenced in
+     * this function change.
+     */
+    get variables() {
+        return {
+            searchKey: this.searchKey === '' ? '%' : `%${this.searchKey}%`
+        };
+    }
+
+    handleKeyChange(event) {
+        // Debouncing this method: Do not update the reactive property as long as this function is
+        // being called within a delay of DELAY. This is to avoid a very large number of Apex method calls.
+        window.clearTimeout(this.delayTimeout);
+        const searchKey = event.target.value;
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.delayTimeout = setTimeout(() => {
+            this.searchKey = searchKey;
+        }, DELAY);
+    }
+}
+```
+
+### Variable Types
+
+- **String**: Text values
+- **Int**: Integer numbers
+- **Boolean**: true/false values
+- **!** suffix: Required variable (e.g., `$searchKey: String!`)
+- Default values: Use `=` (e.g., `$limit: Int = 5`)
+
+## Filtering and Sorting
+
+<Tabs>
+  <Tab title="Where Clause">
+    ```graphql
+    Contact(
+        where: { 
+            Picture__c: { ne: null },
+            Name: { like: "%Smith%" }
+        }
+    )
+    ```
+    
+    **Operators:**
+    - `eq`: Equal to
+    - `ne`: Not equal to
+    - `like`: Pattern matching (use `%` for wildcards)
+    - `gt`: Greater than
+    - `lt`: Less than
+    - `in`: In a list of values
+  </Tab>
+  <Tab title="OrderBy">
+    ```graphql
+    Contact(
+        orderBy: { Name: { order: ASC } }
+    )
+    ```
+    
+    **Options:**
+    - `ASC`: Ascending order
+    - `DESC`: Descending order
+    - Multiple fields supported
+  </Tab>
+  <Tab title="Pagination">
+    ```graphql
+    Contact(
+        first: 10,
+        after: "cursor_value"
+    )
+    ```
+    
+    **Parameters:**
+    - `first`: Number of records to retrieve
+    - `after`: Cursor for pagination
+    - `last`: Get last N records
+    - `before`: Cursor for backward pagination
+  </Tab>
+</Tabs>
+
+## Field Aliases
+
+Use aliases for custom fields to ensure referential integrity:
+
+```graphql
+Picture__c: Picture__c {
+    value
+}
+```
+
+This ensures the field can be found even if Salesforce updates the field name internally. Standard field names never change, so aliases aren't required for them.
+
+## Accessing Query Results
+
+GraphQL results use a connection pattern:
+
+```javascript
+get contacts() {
+    return this.graphql.data?.uiapi.query.Contact.edges.map((edge) => ({
+        Id: edge.node.Id,
+        Name: edge.node.Name.value,
+        Phone: edge.node.Phone.value
+    }));
+}
+```
+
+### Result Structure
+
+```
+graphql.data
+└── uiapi
+    └── query
+        └── Contact
+            └── edges []
+                └── node
+                    ├── Id
+                    ├── Name
+                    │   └── value
+                    └── Phone
+                        └── value
+```
+
+## Reactive Variables
+
+Make queries reactive by using a getter function for variables:
+
+```javascript
+@wire(graphql, {
+    query: gql`...`,
+    variables: '$variables'
+})
+contacts;
+
+get variables() {
+    return {
+        searchKey: this.searchKey,
+        limit: this.pageSize
+    };
+}
+```
+
+The `$variables` syntax tells LWC to treat the getter as reactive. When any property referenced in the getter changes, the query automatically re-executes.
+
+## GraphQL vs Wire Adapters
+
+<Tabs>
+  <Tab title="GraphQL">
+    ```javascript
+    @wire(graphql, {
+        query: gql`
+            query getContacts {
+                uiapi {
+                    query {
+                        Contact(where: { Name: { like: "%Smith%" } }) {
+                            edges {
+                                node {
+                                    Id
+                                    Name { value }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    contacts;
+    ```
+    
+    **Advantages:**
+    - Flexible filtering and sorting
+    - Query exactly the fields needed
+    - Traverse relationships easily
+    - Complex where clauses
+    
+    **Best for:**
+    - Complex queries with filtering
+    - Related record queries
+    - Variable field selection
+  </Tab>
+  <Tab title="Wire Adapter">
+    ```javascript
+    @wire(getRecord, {
+        recordId: '$recordId',
+        fields: [NAME_FIELD, EMAIL_FIELD]
+    })
+    record;
+    ```
+    
+    **Advantages:**
+    - Simpler syntax
+    - Better for single record lookups
+    - Type-safe field references
+    - Automatic field-level security
+    
+    **Best for:**
+    - Simple record retrieval
+    - Single record by ID
+    - Standard use cases
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Aliases for Custom Fields" icon="tag">
+    Always alias custom fields to prevent breaking changes
+  </Card>
+  <Card title="Debounce User Input" icon="clock">
+    Debounce search inputs to avoid excessive queries
+  </Card>
+  <Card title="Limit Results" icon="list">
+    Use `first` parameter to limit query size and improve performance
+  </Card>
+  <Card title="Reactive Variables" icon="arrows-rotate">
+    Use getter functions for reactive variable binding
+  </Card>
+</CardGroup>

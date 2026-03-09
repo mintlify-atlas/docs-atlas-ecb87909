@@ -1,0 +1,534 @@
+---
+title: Aura-LWC Interoperability
+description: Learn how to integrate Lightning Web Components with Aura components for seamless migration and hybrid applications
+---
+
+Lightning Web Components and Aura components can work together, allowing you to migrate gradually and leverage existing Aura components while building new features with LWC.
+
+## Component Composition
+
+You can compose components across frameworks in both directions.
+
+### Embed LWC in Aura
+
+Aura components can contain Lightning Web Components using the standard component syntax.
+
+**auraEmbeddedLWC.cmp:**
+
+```xml
+<aura:component implements="flexipage:availableForAllPageTypes">
+    <aura:attribute name="contactId" type="Id" />
+    <aura:attribute name="selectedContact" type="Contact" />
+
+    <force:recordData
+        aura:id="service"
+        recordId="{!v.contactId}"
+        fields="['Name', 'Title', 'Phone', 'Email', 'Picture__c']"
+        targetFields="{!v.selectedContact}"
+    />
+
+    <lightning:card title="Aura Component with LWC" iconName="custom:custom30">
+        <div class="slds-var-m-around_medium">
+            <lightning:layout>
+                <lightning:layoutItem size="6">
+                    <!-- This is an LWC component embedded in Aura -->
+                    <c:contactList oncontactselect="{!c.handleContactSelect}" />
+                </lightning:layoutItem>
+                <lightning:layoutItem size="6" class="slds-var-p-left_medium">
+                    <aura:if isTrue="{!v.selectedContact}">
+                        <img
+                            src="{!v.selectedContact.Picture__c}"
+                            alt="Profile photo"
+                        />
+                        <p>{!v.selectedContact.Name}</p>
+                        <p>{!v.selectedContact.Title}</p>
+                        <p>
+                            <lightning:formattedPhone
+                                value="{!v.selectedContact.Phone}"
+                            />
+                        </p>
+                    </aura:if>
+                </lightning:layoutItem>
+            </lightning:layout>
+        </div>
+    </lightning:card>
+</aura:component>
+```
+
+**auraEmbeddedLWCController.js:**
+
+```javascript
+({
+    handleContactSelect: function (component, event) {
+        var service = component.find('service');
+        component.set('v.contactId', event.getParam('contactId'));
+        service.reloadRecord();
+    }
+})
+```
+
+**contactList.js (LWC):**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class ContactList extends LightningElement {
+    @wire(getContactList) contacts;
+
+    handleSelect(event) {
+        // Prevent default behavior
+        event.preventDefault();
+        
+        // Create custom event that bubbles up to Aura
+        const selectEvent = new CustomEvent('contactselect', {
+            detail: { contactId: event.currentTarget.dataset.contactId }
+        });
+        
+        // Dispatch event
+        this.dispatchEvent(selectEvent);
+    }
+}
+```
+
+<Warning>
+You cannot embed Aura components inside Lightning Web Components. Communication must flow from LWC (child) to Aura (parent) or through Lightning Message Service.
+</Warning>
+
+## Event Communication
+
+### LWC to Aura Events
+
+Lightning Web Components dispatch standard DOM events that Aura can handle.
+
+**LWC Child Component:**
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class LwcChild extends LightningElement {
+    handleClick() {
+        // Create and dispatch custom event
+        const event = new CustomEvent('itemselected', {
+            detail: { itemId: '123' },
+            bubbles: true,
+            composed: true
+        });
+        this.dispatchEvent(event);
+    }
+}
+```
+
+**Aura Parent Component:**
+
+```xml
+<aura:component>
+    <aura:attribute name="selectedItem" type="String" />
+    
+    <!-- Listen for LWC event -->
+    <c:lwcChild onitemselected="{!c.handleItemSelected}" />
+    
+    <p>Selected: {!v.selectedItem}</p>
+</aura:component>
+```
+
+**Aura Controller:**
+
+```javascript
+({
+    handleItemSelected: function(component, event, helper) {
+        var itemId = event.getParam('itemId');
+        component.set('v.selectedItem', itemId);
+    }
+})
+```
+
+### Using Lightning Message Service
+
+For components that aren't in a parent-child relationship, use Lightning Message Service.
+
+**LWC Publisher:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { publish, MessageContext } from 'lightning/messageService';
+import RECORD_SELECTED from '@salesforce/messageChannel/Record_Selected__c';
+
+export default class LwcPublisher extends LightningElement {
+    @wire(MessageContext)
+    messageContext;
+
+    handleRecordSelect(recordId) {
+        const payload = { recordId: recordId };
+        publish(this.messageContext, RECORD_SELECTED, payload);
+    }
+}
+```
+
+**Aura Subscriber:**
+
+```xml
+<aura:component>
+    <aura:attribute name="recordId" type="String" />
+    
+    <!-- Include message channel -->
+    <lightning:messageChannel
+        type="Record_Selected__c"
+        aura:id="recordSelected"
+        onMessage="{!c.handleMessage}"
+    />
+    
+    <p>Received Record ID: {!v.recordId}</p>
+</aura:component>
+```
+
+**Aura Controller:**
+
+```javascript
+({
+    handleMessage: function(component, message, helper) {
+        if (message && message.recordId) {
+            component.set('v.recordId', message.recordId);
+        }
+    }
+})
+```
+
+**Aura Publisher:**
+
+```xml
+<aura:component>
+    <lightning:messageChannel
+        type="Record_Selected__c"
+        aura:id="recordChannel"
+    />
+    
+    <lightning:button
+        label="Select Record"
+        onclick="{!c.publishMessage}"
+    />
+</aura:component>
+```
+
+```javascript
+({
+    publishMessage: function(component, event, helper) {
+        var message = {
+            recordId: '001xxxxxxxxxxxx'
+        };
+        component.find('recordChannel').publish(message);
+    }
+})
+```
+
+**LWC Subscriber:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { subscribe, MessageContext } from 'lightning/messageService';
+import RECORD_SELECTED from '@salesforce/messageChannel/Record_Selected__c';
+
+export default class LwcSubscriber extends LightningElement {
+    subscription = null;
+    recordId;
+
+    @wire(MessageContext)
+    messageContext;
+
+    connectedCallback() {
+        this.subscription = subscribe(
+            this.messageContext,
+            RECORD_SELECTED,
+            (message) => this.handleMessage(message)
+        );
+    }
+
+    handleMessage(message) {
+        this.recordId = message.recordId;
+    }
+}
+```
+
+## Sharing Apex Controllers
+
+Both Aura and LWC can use the same Apex controllers.
+
+**Apex Controller:**
+
+```apex
+public with sharing class ContactController {
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> getContactList() {
+        return [
+            SELECT Id, Name, Title, Phone, Email, Picture__c
+            FROM Contact
+            LIMIT 10
+        ];
+    }
+}
+```
+
+**LWC Usage:**
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class LwcContacts extends LightningElement {
+    @wire(getContactList) contacts;
+}
+```
+
+**Aura Usage:**
+
+```xml
+<aura:component controller="ContactController">
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    <aura:attribute name="contacts" type="Contact[]" />
+</aura:component>
+```
+
+```javascript
+({
+    doInit: function(component, event, helper) {
+        var action = component.get('c.getContactList');
+        action.setCallback(this, function(response) {
+            component.set('v.contacts', response.getReturnValue());
+        });
+        $A.enqueueAction(action);
+    }
+})
+```
+
+## Public Properties
+
+### Passing Data from Aura to LWC
+
+Use public properties decorated with `@api` to pass data from Aura to LWC.
+
+**LWC Component:**
+
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class LwcChild extends LightningElement {
+    @api recordId;
+    @api title;
+
+    @api
+    refresh() {
+        // Public method callable from Aura
+        console.log('Refresh called from Aura');
+    }
+}
+```
+
+**Aura Component:**
+
+```xml
+<aura:component>
+    <aura:attribute name="accountId" type="String" default="001xxxxxxxxxxxx" />
+    
+    <!-- Pass attributes to LWC -->
+    <c:lwcChild
+        aura:id="lwcChild"
+        recordId="{!v.accountId}"
+        title="Account Details"
+    />
+    
+    <lightning:button
+        label="Refresh LWC"
+        onclick="{!c.refreshChild}"
+    />
+</aura:component>
+```
+
+**Aura Controller:**
+
+```javascript
+({
+    refreshChild: function(component, event, helper) {
+        // Call public method on LWC
+        component.find('lwcChild').refresh();
+    }
+})
+```
+
+## Navigation Considerations
+
+Both frameworks can use navigation, but there are differences.
+
+### LWC Navigation
+
+```javascript
+import { NavigationMixin } from 'lightning/navigation';
+
+export default class LwcNavigation extends NavigationMixin(LightningElement) {
+    navigateToRecord() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: '001xxxxxxxxxxxx',
+                actionName: 'view'
+            }
+        });
+    }
+}
+```
+
+### Aura Navigation
+
+```javascript
+({
+    navigateToRecord: function(component, event, helper) {
+        var navService = component.find('navService');
+        var pageReference = {
+            type: 'standard__recordPage',
+            attributes: {
+                recordId: '001xxxxxxxxxxxx',
+                actionName: 'view'
+            }
+        };
+        navService.navigate(pageReference);
+    }
+})
+```
+
+```xml
+<lightning:navigation aura:id="navService" />
+```
+
+## Migration Strategies
+
+### Gradual Migration
+
+1. **Start with leaf components**: Migrate the smallest, most isolated components first
+2. **Embed LWC in Aura**: Place new LWC components inside existing Aura containers
+3. **Use LMS for communication**: Connect new LWC with existing Aura using Lightning Message Service
+4. **Migrate parent containers last**: Once children are LWC, migrate the parent components
+
+### Shared Utilities
+
+Create utility functions that work in both frameworks:
+
+```javascript
+// Shared utility (works in both)
+export function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+    }).format(amount);
+}
+```
+
+**LWC Usage:**
+```javascript
+import { formatCurrency } from 'c/utils';
+```
+
+**Aura Usage:**
+```xml
+<aura:import library="c:utils" property="utils"/>
+```
+
+## Best Practices
+
+### Keep Event Contracts Simple
+
+```javascript
+// Good - simple event detail
+const event = new CustomEvent('select', {
+    detail: { id: '123' }
+});
+
+// Avoid - complex nested objects
+const event = new CustomEvent('select', {
+    detail: { record: { fields: { ... } } }
+});
+```
+
+### Use LMS for Cross-Framework Communication
+
+Prefer Lightning Message Service over component events for Aura-LWC communication:
+
+```javascript
+// Good - LMS
+publish(this.messageContext, CHANNEL, payload);
+
+// Avoid - relying on event bubbling across frameworks
+```
+
+### Document Public APIs
+
+Clearly document which properties and methods are intended for cross-framework use:
+
+```javascript
+/**
+ * Public API for use by Aura parent components
+ * @property {String} recordId - The record ID to display
+ * @method refresh - Refreshes the component data
+ */
+export default class LwcComponent extends LightningElement {
+    @api recordId;
+    
+    @api
+    refresh() {
+        // Implementation
+    }
+}
+```
+
+### Test Both Frameworks
+
+Test your components in both LWC and Aura contexts:
+
+```javascript
+// Test LWC in isolation
+it('works standalone', () => {
+    const element = createElement('c-component', { is: Component });
+    document.body.appendChild(element);
+    // Test...
+});
+
+// Test LWC embedded in Aura (integration test)
+```
+
+## Common Pitfalls
+
+### Event Naming
+
+Aura expects `on` prefix for event handlers:
+
+```xml
+<!-- Correct -->
+<c:lwcChild onitemselected="{!c.handleSelect}" />
+
+<!-- Incorrect -->
+<c:lwcChild itemselected="{!c.handleSelect}" />
+```
+
+### Event Bubbling
+
+Ensure events bubble and are composed:
+
+```javascript
+// Required for Aura to catch events
+const event = new CustomEvent('select', {
+    bubbles: true,
+    composed: true,
+    detail: { id: '123' }
+});
+```
+
+### Lifecycle Differences
+
+Be aware of lifecycle hook differences:
+
+- Aura: `init`, `render`, `afterRender`, `rerender`, `unrender`
+- LWC: `constructor`, `connectedCallback`, `renderedCallback`, `disconnectedCallback`
+
+## Related Resources
+
+- [Aura and Lightning Web Components Interoperability](https://developer.salesforce.com/docs/component-library/documentation/en/lwc/lwc.interop_aura)
+- [Lightning Message Service](https://developer.salesforce.com/docs/component-library/documentation/en/lwc/lwc.use_message_channel)
+- [Migrate from Aura to LWC](https://developer.salesforce.com/docs/component-library/documentation/en/lwc/lwc.migrate)

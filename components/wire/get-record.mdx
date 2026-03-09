@@ -1,0 +1,117 @@
+---
+title: getRecord
+description: Wire adapter to retrieve record data from Salesforce
+---
+
+The `getRecord` wire adapter retrieves a single record's field data from the Lightning Data Service cache.
+
+## Import
+
+```javascript
+import { getRecord } from 'lightning/uiRecordApi';
+```
+
+## Parameters
+
+<ParamField path="recordId" type="string" required>
+  The ID of the record to retrieve. Use `$` prefix for reactive properties.
+</ParamField>
+
+<ParamField path="fields" type="string[]">
+  Array of fields to retrieve. Can use field references from `@salesforce/schema` or string notation.
+</ParamField>
+
+<ParamField path="optionalFields" type="string[]">
+  Array of fields to retrieve if available. Won't cause errors if fields don't exist.
+</ParamField>
+
+## Field Selection Patterns
+
+### Using Schema References
+
+```javascript
+import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
+import NAME_FIELD from '@salesforce/schema/Contact.Name';
+import TITLE_FIELD from '@salesforce/schema/Contact.Title';
+import PHONE_FIELD from '@salesforce/schema/Contact.Phone';
+import EMAIL_FIELD from '@salesforce/schema/Contact.Email';
+
+const fields = [NAME_FIELD, TITLE_FIELD, PHONE_FIELD, EMAIL_FIELD];
+
+export default class Example extends LightningElement {
+    @api recordId;
+
+    @wire(getRecord, { recordId: '$recordId', fields })
+    contact;
+
+    get name() {
+        return getFieldValue(this.contact.data, NAME_FIELD);
+    }
+}
+```
+
+### Using String Notation
+
+```javascript
+import { getRecord } from 'lightning/uiRecordApi';
+
+const fields = [
+    'Contact.Name',
+    'Contact.Title',
+    'Contact.Phone',
+    'Contact.Email'
+];
+
+export default class Example extends LightningElement {
+    @api recordId;
+
+    @wire(getRecord, { recordId: '$recordId', fields })
+    contact;
+
+    get name() {
+        return this.contact.data.fields.Name.value;
+    }
+}
+```
+
+## Reactive Parameters
+
+Use the `$` prefix to make parameters reactive. The wire adapter automatically re-executes when reactive properties change.
+
+```javascript
+import { getRecord } from 'lightning/uiRecordApi';
+import NAME_FIELD from '@salesforce/schema/User.Name';
+import EMAIL_FIELD from '@salesforce/schema/User.Email';
+import Id from '@salesforce/user/Id';
+
+export default class WireGetRecord extends LightningElement {
+    userId = Id;
+
+    @wire(getRecord, {
+        recordId: '$userId',
+        fields: [NAME_FIELD],
+        optionalFields: [EMAIL_FIELD]
+    })
+    record;
+}
+```
+
+## Optional Fields
+
+Use `optionalFields` to request fields that may not exist without causing errors:
+
+```javascript
+@wire(getRecord, {
+    recordId: '$recordId',
+    fields: [NAME_FIELD],
+    optionalFields: [EMAIL_FIELD]  // Won't error if Email is unavailable
+})
+record;
+```
+
+## Source Examples
+
+- `wireGetRecord` - Basic usage with optional fields
+- `wireGetRecordUser` - Using schema references with getFieldValue
+- `wireGetRecordStaticContact` - Static field list pattern
+- `wireGetRecordDynamicContact` - String notation for fields

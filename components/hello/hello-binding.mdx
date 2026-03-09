@@ -1,0 +1,84 @@
+---
+title: 'Hello Binding'
+description: 'Two-way data binding with input fields in Lightning Web Components'
+---
+
+## Overview
+
+The `helloBinding` component demonstrates two-way data binding in Lightning Web Components. It shows how to update a component property when a user interacts with an input field, creating a dynamic and interactive user experience.
+
+## What It Does
+
+This component displays a greeting message that updates in real-time as the user types in an input field. When the user changes the input value, the `handleChange` event handler updates the `greeting` property, which is reflected immediately in the displayed message.
+
+## Component Code
+
+<CodeGroup>
+
+```javascript helloBinding.js
+import { LightningElement } from 'lwc';
+
+export default class HelloBinding extends LightningElement {
+    greeting = 'World';
+
+    handleChange(event) {
+        this.greeting = event.target.value;
+    }
+}
+```
+
+```html helloBinding.html
+<template>
+    <lightning-card title="HelloBinding" icon-name="custom:custom14">
+        <div class="slds-var-m-around_medium">
+            <p>Hello, {greeting}!</p>
+            <lightning-input
+                label="Name"
+                value={greeting}
+                onchange={handleChange}
+            ></lightning-input>
+        </div>
+
+        <c-view-source source="lwc/helloBinding" slot="footer">
+            Change the value of a bound property when the value of an input
+            field changes. Type something in the input field to see the recipe
+            in action.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+- **Event Handling**: The `onchange` event handler listens for changes to the input field
+- **Reactive Properties**: When `greeting` is updated, the template automatically re-renders
+- **Two-Way Binding**: The input field's value is bound to `greeting`, and changes update the property
+- **Event Object**: The `event.target.value` provides access to the current input value
+
+## How It Works
+
+1. The input field displays the current value of `greeting` (initially "World")
+2. When the user types in the input field, the `onchange` event fires
+3. The `handleChange` method updates `greeting` with the new input value
+4. The template reactively updates to show the new greeting message
+
+## Usage Example
+
+To use this component in your Salesforce org:
+
+```html
+<c-hello-binding></c-hello-binding>
+```
+
+Try typing a name like "Alice" in the input field. The greeting will update to:
+```
+Hello, Alice!
+```
+
+## Source Code
+
+View the complete source code on GitHub:
+- [helloBinding.js](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloBinding/helloBinding.js)
+- [helloBinding.html](https://github.com/trailheadapps/lwc-recipes/blob/main/force-app/main/default/lwc/helloBinding/helloBinding.html)

@@ -1,0 +1,287 @@
+---
+title: Third-Party JavaScript Libraries
+description: Learn how to integrate popular third-party JavaScript libraries like Chart.js, D3, and FullCalendar in Lightning Web Components
+---
+
+Lightning Web Components can load and use third-party JavaScript libraries through Salesforce static resources. This allows you to leverage powerful libraries like Chart.js, D3, and FullCalendar in your components.
+
+## Loading Libraries
+
+Use the `loadScript` and `loadStyle` functions from `lightning/platformResourceLoader` to load third-party libraries:
+
+```javascript
+import { loadScript, loadStyle } from 'lightning/platformResourceLoader';
+import LIBRARY from '@salesforce/resourceUrl/libraryName';
+```
+
+<Warning>
+When using components in LWR sites, you may need a custom implementation of `loadScript` due to Lightning Locker limitations. See the [Lightning Locker documentation](https://developer.salesforce.com/docs/atlas.en-us.exp_cloud_lwr.meta/exp_cloud_lwr/template_limitations.htm) for details.
+</Warning>
+
+## Chart.js Example
+
+Chart.js is a popular charting library that creates beautiful, responsive charts.
+
+**JavaScript** (`libsChartjs.js`):
+
+```javascript
+import { LightningElement } from 'lwc';
+import chartjs from '@salesforce/resourceUrl/chartJs';
+import { loadScript } from 'lightning/platformResourceLoader';
+
+export default class LibsChartjs extends LightningElement {
+    error;
+    chart;
+    chartjsInitialized = false;
+
+    config = {
+        type: 'doughnut',
+        data: {
+            datasets: [
+                {
+                    data: [65, 59, 80, 81, 56],
+                    backgroundColor: [
+                        'rgb(255, 99, 132)',
+                        'rgb(255, 159, 64)',
+                        'rgb(255, 205, 86)',
+                        'rgb(75, 192, 192)',
+                        'rgb(54, 162, 235)'
+                    ],
+                    label: 'Dataset 1'
+                }
+            ],
+            labels: ['Red', 'Orange', 'Yellow', 'Green', 'Blue']
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    };
+
+    async renderedCallback() {
+        if (this.chartjsInitialized) {
+            return;
+        }
+        this.chartjsInitialized = true;
+
+        try {
+            await loadScript(this, chartjs);
+            const canvas = document.createElement('canvas');
+            this.template.querySelector('div.chart').appendChild(canvas);
+            const ctx = canvas.getContext('2d');
+            this.chart = new window.Chart(ctx, this.config);
+        } catch (error) {
+            this.error = error;
+        }
+    }
+}
+```
+
+**Template** (`libsChartjs.html`):
+
+```html
+<template>
+    <lightning-card title="Chart.js" icon-name="custom:custom19">
+        <div class="chart slds-var-m-around_medium" lwc:dom="manual"></div>
+        <template lwc:if={error}>
+            <c-error-panel errors={error}></c-error-panel>
+        </template>
+    </lightning-card>
+</template>
+```
+
+## D3.js Example
+
+D3 is a powerful library for creating data visualizations. This example creates an interactive force-directed graph.
+
+```javascript
+import { LightningElement } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { loadScript, loadStyle } from 'lightning/platformResourceLoader';
+import D3 from '@salesforce/resourceUrl/d3';
+import DATA from './data';
+
+export default class LibsD3 extends LightningElement {
+    svgWidth = 400;
+    svgHeight = 400;
+    d3Initialized = false;
+
+    async renderedCallback() {
+        if (this.d3Initialized) {
+            return;
+        }
+        this.d3Initialized = true;
+
+        try {
+            await Promise.all([
+                loadScript(this, D3 + '/d3.v5.min.js'),
+                loadStyle(this, D3 + '/style.css')
+            ]);
+            this.initializeD3();
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error loading D3',
+                    message: error.message,
+                    variant: 'error'
+                })
+            );
+        }
+    }
+
+    initializeD3() {
+        const svg = d3.select(this.template.querySelector('svg.d3'));
+        const width = this.svgWidth;
+        const height = this.svgHeight;
+        const color = d3.scaleOrdinal(d3.schemeDark2);
+
+        const simulation = d3
+            .forceSimulation()
+            .force('link', d3.forceLink().id((d) => d.id))
+            .force('charge', d3.forceManyBody())
+            .force('center', d3.forceCenter(width / 2, height / 2));
+
+        // Create links and nodes
+        const link = svg
+            .append('g')
+            .attr('class', 'links')
+            .selectAll('line')
+            .data(DATA.links)
+            .enter()
+            .append('line');
+
+        const node = svg
+            .append('g')
+            .attr('class', 'nodes')
+            .selectAll('circle')
+            .data(DATA.nodes)
+            .enter()
+            .append('circle')
+            .attr('r', 5)
+            .attr('fill', (d) => color(d.group));
+
+        simulation.nodes(DATA.nodes);
+        simulation.force('link').links(DATA.links);
+    }
+}
+```
+
+## FullCalendar Example
+
+FullCalendar provides a full-featured calendar interface.
+
+```javascript
+import { LightningElement } from 'lwc';
+import FULL_CALENDAR from '@salesforce/resourceUrl/fullCalendar';
+import { loadScript, loadStyle } from 'lightning/platformResourceLoader';
+
+export default class LibsFullCalendar extends LightningElement {
+    isCalInitialized = false;
+    error;
+
+    async renderedCallback() {
+        if (this.isCalInitialized) {
+            return;
+        }
+        this.isCalInitialized = true;
+
+        try {
+            await Promise.all([
+                loadScript(this, FULL_CALENDAR + '/main.min.js'),
+                loadStyle(this, FULL_CALENDAR + '/main.min.css')
+            ]);
+            this.initializeCalendar();
+        } catch (error) {
+            this.error = error;
+        }
+    }
+
+    initializeCalendar() {
+        const calendarEl = this.template.querySelector('.calendar');
+        if (typeof FullCalendar === 'undefined') {
+            throw new Error(
+                'Could not load FullCalendar. Make sure that Lightning Web Security is enabled.'
+            );
+        }
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth'
+        });
+        calendar.render();
+    }
+}
+```
+
+<Warning>
+FullCalendar requires Lightning Web Security to be enabled for your org. It will not work with Lightning Locker.
+</Warning>
+
+## Best Practices
+
+### Use Initialization Flags
+
+Always use a flag to prevent loading libraries multiple times:
+
+```javascript
+libraryInitialized = false;
+
+async renderedCallback() {
+    if (this.libraryInitialized) {
+        return;
+    }
+    this.libraryInitialized = true;
+    // Load library
+}
+```
+
+### Load Multiple Resources
+
+Use `Promise.all()` to load scripts and styles in parallel:
+
+```javascript
+await Promise.all([
+    loadScript(this, LIBRARY + '/script.js'),
+    loadStyle(this, LIBRARY + '/styles.css')
+]);
+```
+
+### Handle Errors
+
+Always wrap library loading in try-catch blocks and provide user feedback:
+
+```javascript
+try {
+    await loadScript(this, LIBRARY);
+} catch (error) {
+    this.dispatchEvent(
+        new ShowToastEvent({
+            title: 'Error loading library',
+            message: error.message,
+            variant: 'error'
+        })
+    );
+}
+```
+
+### Use Manual DOM Mode
+
+For libraries that manipulate the DOM directly, use `lwc:dom="manual"`:
+
+```html
+<div class="container" lwc:dom="manual"></div>
+```
+
+## Uploading Libraries as Static Resources
+
+1. Download the library files
+2. Create a ZIP file if needed
+3. Upload to Setup > Static Resources
+4. Reference using `@salesforce/resourceUrl/resourceName`
+
+## Related Resources
+
+- [Lightning Web Components Developer Guide](https://developer.salesforce.com/docs/component-library/documentation/en/lwc)
+- [platformResourceLoader Documentation](https://developer.salesforce.com/docs/component-library/bundle/lightning-platform-resource-loader)

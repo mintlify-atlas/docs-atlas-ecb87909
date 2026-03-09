@@ -1,0 +1,213 @@
+---
+title: 'Expressions'
+description: 'Learn how to use getters and computed properties in Lightning Web Components'
+icon: 'function'
+---
+
+## Overview
+
+Expressions allow you to compute and display dynamic values in your templates. Using JavaScript getters, you can transform, combine, and format data before displaying it to users.
+
+## How It Works
+
+The `helloExpressions` component demonstrates how to:
+
+1. Track multiple properties (`firstName` and `lastName`)
+2. Use a getter to compute a derived value
+3. Bind the computed value to the template
+
+## Implementation
+
+<CodeGroup>
+
+```javascript helloExpressions.js
+import { LightningElement } from 'lwc';
+
+export default class HelloExpressions extends LightningElement {
+    firstName = '';
+    lastName = '';
+
+    handleChange(event) {
+        const field = event.target.name;
+        if (field === 'firstName') {
+            this.firstName = event.target.value;
+        } else if (field === 'lastName') {
+            this.lastName = event.target.value;
+        }
+    }
+
+    get uppercasedFullName() {
+        return `${this.firstName} ${this.lastName}`.trim().toUpperCase();
+    }
+}
+```
+
+```html helloExpressions.html
+<template>
+    <lightning-card title="HelloExpressions" icon-name="custom:custom14">
+        <div class="slds-var-m-around_medium">
+            <lightning-input
+                name="firstName"
+                label="First Name"
+                onchange={handleChange}
+            ></lightning-input>
+            <lightning-input
+                name="lastName"
+                label="Last Name"
+                onchange={handleChange}
+            ></lightning-input>
+            <p class="slds-var-m-top_medium">
+                Uppercased Full Name: {uppercasedFullName}
+            </p>
+        </div>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+### JavaScript Getters
+
+A getter is a computed property defined with the `get` keyword:
+
+```javascript
+get uppercasedFullName() {
+    return `${this.firstName} ${this.lastName}`.trim().toUpperCase();
+}
+```
+
+- Getters are accessed like properties, but execute a function when accessed
+- They're perfect for computed values that depend on other properties
+- LWC automatically re-evaluates getters when their dependencies change
+
+<Note>
+Getters should be pure functions with no side effects. They should only compute and return values based on component state.
+</Note>
+
+### Template Expressions
+
+You can bind getters in templates just like regular properties:
+
+```html
+<p>Uppercased Full Name: {uppercasedFullName}</p>
+```
+
+When `firstName` or `lastName` changes, LWC:
+
+1. Detects the property change
+2. Re-evaluates the `uppercasedFullName` getter
+3. Updates the DOM with the new computed value
+
+### Handling Multiple Fields
+
+The component uses the `name` attribute to identify which field changed:
+
+```html
+<lightning-input
+    name="firstName"
+    onchange={handleChange}
+></lightning-input>
+```
+
+```javascript
+handleChange(event) {
+    const field = event.target.name;
+    if (field === 'firstName') {
+        this.firstName = event.target.value;
+    } else if (field === 'lastName') {
+        this.lastName = event.target.value;
+    }
+}
+```
+
+<Tip>
+Using the `name` attribute allows you to reuse a single event handler for multiple input fields, keeping your code DRY (Don't Repeat Yourself).
+</Tip>
+
+## What You'll See
+
+1. Two empty input fields labeled "First Name" and "Last Name"
+2. A line showing "Uppercased Full Name:" (empty initially)
+3. As you type:
+   - Type "John" in First Name → displays "JOHN"
+   - Type "Smith" in Last Name → displays "JOHN SMITH"
+4. The `.trim()` method removes extra whitespace when fields are empty
+
+## Advanced Expression Patterns
+
+### Formatting Dates
+
+```javascript
+get formattedDate() {
+    return new Date(this.timestamp).toLocaleDateString();
+}
+```
+
+### Conditional Values
+
+```javascript
+get statusMessage() {
+    return this.isActive ? 'Active' : 'Inactive';
+}
+```
+
+### Calculations
+
+```javascript
+get totalPrice() {
+    return this.quantity * this.unitPrice;
+}
+```
+
+### Null Safety
+
+```javascript
+get displayName() {
+    return this.user?.name ?? 'Guest';
+}
+```
+
+<Tip>
+Use optional chaining (`?.`) and nullish coalescing (`??`) to safely handle potentially null or undefined values.
+</Tip>
+
+## Best Practices
+
+<Tip>
+**Keep getters fast**: Getters are re-evaluated frequently. Avoid expensive operations like sorting large arrays or complex calculations. Consider caching if needed.
+</Tip>
+
+<Note>
+**No side effects**: Getters should not modify component state or trigger actions. They should only compute and return values.
+</Note>
+
+<Tip>
+**Use getters for computed values**: Any value derived from other properties should be a getter rather than a separate property you manually update.
+</Tip>
+
+## Inline Expressions
+
+You can also use simple expressions directly in templates:
+
+```html
+<!-- String concatenation -->
+<p>Welcome, {firstName} {lastName}!</p>
+
+<!-- Ternary operator -->
+<p>{isActive ? 'Online' : 'Offline'}</p>
+
+<!-- Property access -->
+<p>{contact.email}</p>
+```
+
+<Note>
+For complex expressions, prefer getters over inline expressions to keep templates readable and logic testable.
+</Note>
+
+## Next Steps
+
+- [Data Binding](/basics/data-binding) - Handle user input and events
+- [Conditional Rendering](/basics/conditional-rendering) - Show/hide content dynamically
+- [Iteration](/basics/iteration) - Render lists of computed values

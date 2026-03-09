@@ -1,0 +1,148 @@
+---
+title: Component Composition
+description: Learn how to build complex UIs by nesting and composing Lightning Web Components
+---
+
+Component composition is a fundamental pattern in Lightning Web Components that allows you to build complex user interfaces by combining smaller, reusable components. This approach promotes code reusability, maintainability, and separation of concerns.
+
+## What is Component Composition?
+
+Composition in LWC means nesting child components inside parent components to create more complex functionality. Parent components can pass data to child components through public properties decorated with `@api`, enabling communication and data flow through your component hierarchy.
+
+## Key Concepts
+
+<CardGroup cols={2}>
+  <Card title="Public Properties" icon="at">
+    Use the `@api` decorator to expose properties that parent components can set
+  </Card>
+  <Card title="Data Flow" icon="arrow-down">
+    Data flows from parent to child through property binding
+  </Card>
+  <Card title="Nested Components" icon="layer-group">
+    Components can be nested multiple levels deep
+  </Card>
+  <Card title="Iteration" icon="repeat">
+    Use `for:each` or `iterator` to create multiple instances of child components
+  </Card>
+</CardGroup>
+
+## Basic Example
+
+Here's a simple example showing a parent component passing data to a child:
+
+**Child Component (child.js)**
+```javascript
+import { LightningElement, api } from 'lwc';
+
+export default class Child extends LightningElement {
+    @api firstName;
+    @api lastName;
+
+    get fullName() {
+        return `${this.firstName} ${this.lastName}`;
+    }
+}
+```
+
+**Child Template (child.html)**
+```html
+<template>
+    <p>Hello, {fullName}!</p>
+</template>
+```
+
+**Parent Template**
+```html
+<template>
+    <c-child first-name="Amy" last-name="Taylor"></c-child>
+</template>
+```
+
+<Note>
+  In markup, property names use kebab-case (e.g., `first-name`) while in JavaScript they use camelCase (e.g., `firstName`)
+</Note>
+
+## Common Composition Patterns
+
+### Static Composition
+
+Nesting a single instance of a child component with hardcoded or component-managed data.
+
+**compositionBasics.js**
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class CompositionParent extends LightningElement {
+    contact = {
+        Name: 'Amy Taylor',
+        Title: 'VP of Engineering',
+        Phone: '6172559632',
+        Picture__c: 'https://example.com/amy_taylor.jpg'
+    };
+}
+```
+
+**compositionBasics.html**
+```html
+<template>
+    <c-contact-tile contact={contact}></c-contact-tile>
+</template>
+```
+
+### Dynamic Composition with Iteration
+
+Creating multiple instances of a child component by iterating over an array.
+
+**compositionIteration.js**
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class CompositionIteration extends LightningElement {
+    contacts = [
+        {
+            Id: '003171931112854375',
+            Name: 'Amy Taylor',
+            Title: 'VP of Engineering'
+        },
+        {
+            Id: '003192301009134555',
+            Name: 'Michael Jones',
+            Title: 'VP of Sales'
+        }
+    ];
+}
+```
+
+**compositionIteration.html**
+```html
+<template>
+    <template for:each={contacts} for:item="contact">
+        <c-contact-tile key={contact.Id} contact={contact}></c-contact-tile>
+    </template>
+</template>
+```
+
+<Warning>
+  Always include a unique `key` directive when using `for:each` to help the framework efficiently render and re-render components
+</Warning>
+
+## Benefits of Composition
+
+- **Reusability**: Create components once and use them throughout your application
+- **Maintainability**: Isolated components are easier to test and update
+- **Separation of Concerns**: Each component handles its own logic and presentation
+- **Scalability**: Build complex UIs from simple, well-defined building blocks
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Parent-Child Communication" icon="comments" href="./parent-to-child">
+    Learn about passing data and methods between components
+  </Card>
+  <Card title="Nesting Patterns" icon="sitemap" href="./nesting">
+    Explore advanced nesting and iteration techniques
+  </Card>
+  <Card title="App Builder Integration" icon="wrench" href="./app-builder">
+    Expose components in Lightning App Builder
+  </Card>
+</CardGroup>

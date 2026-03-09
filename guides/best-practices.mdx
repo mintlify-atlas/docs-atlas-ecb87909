@@ -1,0 +1,616 @@
+---
+title: Lightning Web Components Best Practices
+description: Essential patterns and best practices for building Lightning Web Components, derived from LWC Recipes
+---
+
+This guide compiles best practices for Lightning Web Components development, based on real examples from the LWC Recipes codebase.
+
+## Component Architecture
+
+### 1. Keep Components Focused and Single-Purpose
+
+Each component should have a clear, single responsibility. The recipes demonstrate this principle:
+
+- `hello` - Simple greeting display
+- `contactList` - Displays a list of contacts
+- `contactListItem` - Renders individual contact items
+
+Breaking functionality into smaller components improves reusability and testability.
+
+### 2. Use Composition Over Inheritance
+
+Lightning Web Components favor composition. Build complex UIs by combining smaller components:
+
+```javascript
+// Parent component that composes smaller components
+import { LightningElement } from 'lwc';
+
+export default class CompositionBasics extends LightningElement {
+    // Orchestrates child components
+}
+```
+
+Example from the recipes: `compositionContactSearch` combines `contactList` and search functionality.
+
+### 3. Leverage Component Lifecycle Hooks
+
+Use lifecycle hooks appropriately:
+
+- `constructor()` - Initialize component state
+- `connectedCallback()` - Set up subscriptions, fetch data
+- `disconnectedCallback()` - Clean up subscriptions, timers
+- `renderedCallback()` - DOM manipulation (use sparingly)
+
+```javascript
+import { LightningElement } from 'lwc';
+
+export default class Clock extends LightningElement {
+    connectedCallback() {
+        // Start timer when component is inserted into DOM
+        this.interval = setInterval(() => {
+            this.updateTime();
+        }, 1000);
+    }
+
+    disconnectedCallback() {
+        // Clean up timer when component is removed
+        clearInterval(this.interval);
+    }
+}
+```
+
+## Data Management
+
+### 1. Use @wire for Reactive Data Fetching
+
+The `@wire` decorator provides reactive, cacheable data access:
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class EventWithData extends LightningElement {
+    @wire(getContactList) contacts;
+}
+```
+
+Benefits:
+- Automatic caching
+- Reactive to parameter changes
+- Built-in error handling
+
+### 2. Implement Debouncing for User Input
+
+When making server calls based on user input, always debounce to reduce unnecessary requests:
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import findContacts from '@salesforce/apex/ContactController.findContacts';
+
+const DELAY = 300;
+
+export default class ApexWireMethodWithParams extends LightningElement {
+    searchKey = '';
+
+    @wire(findContacts, { searchKey: '$searchKey' })
+    contacts;
+
+    handleKeyChange(event) {
+        // Debouncing this method
+        window.clearTimeout(this.delayTimeout);
+        const searchKey = event.target.value;
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.delayTimeout = setTimeout(() => {
+            this.searchKey = searchKey;
+        }, DELAY);
+    }
+}
+```
+
+### 3. Use Lightning Data Service for Standard Objects
+
+Leverage LDS for CRUD operations on standard and custom objects:
+
+```javascript
+import { LightningElement } from 'lwc';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { createRecord } from 'lightning/uiRecordApi';
+import { reduceErrors } from 'c/ldsUtils';
+import ACCOUNT_OBJECT from '@salesforce/schema/Account';
+import NAME_FIELD from '@salesforce/schema/Account.Name';
+
+export default class LdsCreateRecord extends LightningElement {
+    accountId;
+    name = '';
+
+    async createAccount() {
+        const fields = {};
+        fields[NAME_FIELD.fieldApiName] = this.name;
+        const recordInput = { apiName: ACCOUNT_OBJECT.objectApiName, fields };
+        
+        try {
+            const account = await createRecord(recordInput);
+            this.accountId = account.id;
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Success',
+                    message: 'Account created',
+                    variant: 'success'
+                })
+            );
+        } catch (error) {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error creating record',
+                    message: reduceErrors(error).join(', '),
+                    variant: 'error'
+                })
+            );
+        }
+    }
+}
+```
+
+Benefits:
+- Automatic caching and cache invalidation
+- Respect field-level security
+- Optimized for performance
+
+## Event Handling
+
+### 1. Use Custom Events for Parent-Child Communication
+
+Dispatch custom events from child components:
+
+```javascript
+// Child component
+handleClick() {
+    const event = new CustomEvent('select', {
+        detail: this.contact.Id
+    });
+    this.dispatchEvent(event);
+}
+```
+
+```javascript
+// Parent component
+handleSelect(event) {
+    const contactId = event.detail;
+    // Process the selected contact
+}
+```
+
+### 2. Bubble Events for Deep Component Trees
+
+For events that need to traverse multiple component levels, use bubbling:
+
+```javascript
+const event = new CustomEvent('select', {
+    detail: contactId,
+    bubbles: true,
+    composed: true
+});
+this.dispatchEvent(event);
+```
+
+### 3. Name Events Consistently
+
+Use consistent naming conventions:
+- Prefix with action verb: `select`, `delete`, `update`
+- Use lowercase
+- Be descriptive: `contactselect` rather than `select`
+
+## Error Handling
+
+### 1. Create Reusable Error Utilities
+
+Centralize error processing logic:
+
+```javascript
+// ldsUtils.js
+export function reduceErrors(errors) {
+    if (!Array.isArray(errors)) {
+        errors = [errors];
+    }
+
+    return (
+        errors
+            .filter((error) => !!error)
+            .map((error) => {
+                // Handle different error formats
+                if (Array.isArray(error.body)) {
+                    return error.body.map((e) => e.message);
+                } else if (error.body?.message) {
+                    return error.body.message;
+                }
+                return error.message || error.statusText || 'Unknown error';
+            })
+            .flat()
+    );
+}
+```
+
+### 2. Display User-Friendly Error Messages
+
+Always show meaningful error messages using toast notifications:
+
+```javascript
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
+try {
+    // Operation that might fail
+} catch (error) {
+    this.dispatchEvent(
+        new ShowToastEvent({
+            title: 'Error loading data',
+            message: reduceErrors(error).join(', '),
+            variant: 'error',
+            mode: 'sticky'
+        })
+    );
+}
+```
+
+### 3. Use Error Panels for Complex Error States
+
+Create dedicated error panel components for consistent error display:
+
+```html
+<template>
+    <template if:true={contacts.error}>
+        <c-error-panel errors={contacts.error}></c-error-panel>
+    </template>
+</template>
+```
+
+## Styling
+
+### 1. Use SLDS (Salesforce Lightning Design System)
+
+Leverage SLDS classes for consistent styling:
+
+```html
+<div class="slds-box slds-theme_default">
+    <h2 class="slds-text-heading_medium slds-m-bottom_small">
+        Contact Information
+    </h2>
+</div>
+```
+
+### 2. Scope Styles with :host
+
+Use CSS custom properties and :host for scoped styling:
+
+```css
+:host {
+    display: block;
+    padding: var(--lwc-spacing-medium);
+}
+
+.container {
+    background-color: var(--lwc-color-background-alt);
+}
+```
+
+### 3. Implement Styling Hooks for Customization
+
+Expose CSS custom properties for external customization:
+
+```css
+/* In component CSS */
+:host {
+    --my-component-background: white;
+    --my-component-border: 1px solid gray;
+}
+
+.container {
+    background: var(--my-component-background);
+    border: var(--my-component-border);
+}
+```
+
+```css
+/* In parent component or theme */
+c-my-component {
+    --my-component-background: lightblue;
+    --my-component-border: 2px solid darkblue;
+}
+```
+
+## Performance Optimization
+
+### 1. Use Getters for Computed Properties
+
+Implement computed properties with getters instead of tracking reactive properties:
+
+```javascript
+export default class WireGetRecordDynamicContact extends LightningElement {
+    @wire(getRecord, { recordId: '$recordId', fields: FIELDS })
+    contact;
+
+    get name() {
+        return this.contact.data?.fields.Name.value;
+    }
+
+    get phone() {
+        return this.contact.data?.fields.Phone.value;
+    }
+}
+```
+
+### 2. Load Third-Party Libraries Once
+
+Use static resources and load scripts in `renderedCallback` with a guard:
+
+```javascript
+import { LightningElement } from 'lwc';
+import { loadScript } from 'lightning/platformResourceLoader';
+import CHARTJS from '@salesforce/resourceUrl/chartJs';
+
+export default class LibsChartjs extends LightningElement {
+    chartjsInitialized = false;
+
+    renderedCallback() {
+        if (this.chartjsInitialized) {
+            return;
+        }
+        this.chartjsInitialized = true;
+
+        loadScript(this, CHARTJS)
+            .then(() => {
+                this.initializeChart();
+            })
+            .catch(error => {
+                this.error = error;
+            });
+    }
+}
+```
+
+### 3. Minimize DOM Queries
+
+Cache DOM queries instead of repeating `querySelector` calls:
+
+```javascript
+// Bad
+handleClick() {
+    this.template.querySelector('.button').disabled = true;
+    this.template.querySelector('.button').textContent = 'Loading...';
+}
+
+// Good
+handleClick() {
+    const button = this.template.querySelector('.button');
+    button.disabled = true;
+    button.textContent = 'Loading...';
+}
+```
+
+## Testing
+
+### 1. Test Every Component
+
+Maintain high test coverage with unit tests for all components:
+
+```javascript
+import { createElement } from '@lwc/engine-dom';
+import Hello from 'c/hello';
+
+describe('c-hello', () => {
+    afterEach(() => {
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('displays greeting', () => {
+        const element = createElement('c-hello', { is: Hello });
+        document.body.appendChild(element);
+
+        const div = element.shadowRoot.querySelector('div');
+        expect(div.textContent).toBe('Hello, World!');
+    });
+});
+```
+
+### 2. Mock External Dependencies
+
+Always mock Apex methods, LDS, and platform services:
+
+```javascript
+jest.mock(
+    '@salesforce/apex/ContactController.findContacts',
+    () => {
+        const { createApexTestWireAdapter } = require('@salesforce/sfdx-lwc-jest');
+        return {
+            default: createApexTestWireAdapter(jest.fn())
+        };
+    },
+    { virtual: true }
+);
+```
+
+### 3. Include Accessibility Tests
+
+Test accessibility for every component:
+
+```javascript
+it('is accessible', async () => {
+    const element = createElement('c-hello', { is: Hello });
+    document.body.appendChild(element);
+
+    await expect(element).toBeAccessible();
+});
+```
+
+## Code Quality
+
+### 1. Use ESLint and Prettier
+
+Maintain consistent code style with automated formatting:
+
+```json
+"scripts": {
+    "lint": "eslint .",
+    "prettier": "prettier --write \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\"",
+    "prettier:verify": "prettier --check \"**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}\""
+}
+```
+
+### 2. Implement Pre-commit Hooks
+
+Use Husky and lint-staged to enforce quality gates:
+
+```json
+"lint-staged": {
+    "**/*.{cls,cmp,component,css,html,js,json,md,page,trigger,xml,yaml,yml}": [
+        "prettier --write"
+    ],
+    "**/*.js": [
+        "eslint"
+    ],
+    "**/lwc/**": [
+        "sfdx-lwc-jest -- --bail --findRelatedTests --passWithNoTests"
+    ]
+}
+```
+
+### 3. Use Descriptive Variable and Function Names
+
+Choose clear, self-documenting names:
+
+```javascript
+// Bad
+const d = 300;
+const t = null;
+
+// Good
+const DELAY = 300;
+let delayTimeout = null;
+```
+
+## Accessibility
+
+### 1. Use Semantic HTML
+
+Always use appropriate semantic HTML elements:
+
+```html
+<button onclick={handleClick}>Submit</button>
+<!-- NOT -->
+<div onclick={handleClick}>Submit</div>
+```
+
+### 2. Provide ARIA Labels
+
+Add ARIA labels for screen readers:
+
+```html
+<lightning-input
+    label="Search Contacts"
+    value={searchKey}
+    onchange={handleKeyChange}
+    aria-label="Search contacts by name"
+></lightning-input>
+```
+
+### 3. Manage Focus
+
+Ensure keyboard navigation works correctly:
+
+```javascript
+handleModalClose() {
+    // Return focus to the element that opened the modal
+    this.previouslyFocusedElement?.focus();
+}
+```
+
+### 4. Test with Screen Readers
+
+Manually test components with screen readers (NVDA, JAWS, VoiceOver) to ensure they're usable.
+
+## Security
+
+### 1. Respect Field-Level Security
+
+Use Lightning Data Service which automatically enforces FLS:
+
+```javascript
+import { getRecord } from 'lightning/uiRecordApi';
+// LDS respects field-level security automatically
+```
+
+### 2. Sanitize User Input
+
+When displaying user input, use Lightning base components that handle sanitization:
+
+```html
+<lightning-formatted-text value={userInput}></lightning-formatted-text>
+```
+
+### 3. Use @AuraEnabled(Cacheable=true) Carefully
+
+Only cache Apex methods that return data accessible to all users:
+
+```java
+@AuraEnabled(cacheable=true)
+public static List<Contact> getContactList() {
+    return [
+        SELECT Id, Name, Title, Phone, Email, Picture__c
+        FROM Contact
+        WITH SECURITY_ENFORCED
+        LIMIT 10
+    ];
+}
+```
+
+## Documentation
+
+### 1. Add JSDoc Comments
+
+Document public APIs and complex logic:
+
+```javascript
+/**
+ * Reduces one or more LDS errors into a string array of error messages.
+ * @param {FetchResponse|FetchResponse[]} errors - Error response from LDS
+ * @return {String[]} Array of error messages
+ */
+export function reduceErrors(errors) {
+    // Implementation
+}
+```
+
+### 2. Include Component-Level Documentation
+
+Add XML metadata describing the component:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <description>Demonstrates basic wire service usage</description>
+    <isExposed>true</isExposed>
+    <masterLabel>Wire Get Record</masterLabel>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__RecordPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+</LightningComponentBundle>
+```
+
+### 3. Create Code Tours
+
+For complex features, create CodeTour walkthroughs to help developers understand the implementation.
+
+## Summary
+
+Following these best practices will help you build Lightning Web Components that are:
+
+- **Maintainable**: Clear structure and consistent patterns
+- **Performant**: Optimized for speed and efficiency
+- **Testable**: Comprehensive test coverage
+- **Accessible**: Usable by everyone
+- **Secure**: Following Salesforce security best practices
+- **Scalable**: Ready to grow with your application

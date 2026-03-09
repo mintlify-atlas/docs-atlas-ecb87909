@@ -1,0 +1,135 @@
+---
+title: Chart.js Integration
+description: Use Chart.js library in Lightning Web Components to create interactive charts
+---
+
+The `libsChartjs` component demonstrates how to integrate the Chart.js library into a Lightning Web Component to create responsive, interactive charts.
+
+## Source Code
+
+- Component: `force-app/main/default/lwc/libsChartjs/`
+- Static Resource: `force-app/main/default/staticresources/chartJs.js`
+
+## Key Features
+
+- Loads Chart.js library using `loadScript`
+- Creates a doughnut chart with random data
+- Uses manual DOM manipulation with `lwc:dom="manual"`
+- Implements initialization guard pattern
+
+## Loading External Libraries
+
+The component uses `platformResourceLoader` to load the Chart.js library from static resources:
+
+```javascript
+import chartjs from '@salesforce/resourceUrl/chartJs';
+import { loadScript } from 'lightning/platformResourceLoader';
+
+await loadScript(this, chartjs);
+```
+
+<Warning>
+  When using this component in an LWR site, import the custom implementation of `loadScript` instead:
+  
+  ```javascript
+  import { loadScript } from 'c/resourceLoader';
+  ```
+  
+  This workaround addresses a Lightning Locker library limitation in LWR sites. See [Lightning Locker Limitations](https://developer.salesforce.com/docs/atlas.en-us.exp_cloud_lwr.meta/exp_cloud_lwr/template_limitations.htm).
+</Warning>
+
+## Initialization Pattern
+
+The component uses the `renderedCallback()` lifecycle hook with a flag to ensure the library is loaded only once:
+
+```javascript
+chartjsInitialized = false;
+
+async renderedCallback() {
+    if (this.chartjsInitialized) {
+        return;
+    }
+    this.chartjsInitialized = true;
+
+    try {
+        await loadScript(this, chartjs);
+        const canvas = document.createElement('canvas');
+        this.template.querySelector('div.chart').appendChild(canvas);
+        const ctx = canvas.getContext('2d');
+        this.chart = new window.Chart(ctx, this.config);
+    } catch (error) {
+        this.error = error;
+    }
+}
+```
+
+Key points:
+- Guard flag prevents multiple initializations
+- Canvas element is created programmatically
+- Chart instance is attached to component property for later access
+- Errors are captured and stored for display
+
+## Chart Configuration
+
+The component defines a chart configuration object with type, data, and options:
+
+```javascript
+config = {
+    type: 'doughnut',
+    data: {
+        datasets: [
+            {
+                data: [
+                    generateRandomNumber(),
+                    generateRandomNumber(),
+                    generateRandomNumber(),
+                    generateRandomNumber(),
+                    generateRandomNumber()
+                ],
+                backgroundColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(255, 159, 64)',
+                    'rgb(255, 205, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(54, 162, 235)'
+                ],
+                label: 'Dataset 1'
+            }
+        ],
+        labels: ['Red', 'Orange', 'Yellow', 'Green', 'Blue']
+    },
+    options: {
+        responsive: false,
+        plugins: {
+            legend: {
+                position: 'right'
+            }
+        },
+        animation: {
+            animateScale: true,
+            animateRotate: true
+        }
+    }
+};
+```
+
+## Manual DOM Container
+
+The template uses `lwc:dom="manual"` to allow direct DOM manipulation:
+
+```html
+<div class="chart slds-var-m-around_medium" lwc:dom="manual"></div>
+```
+
+This directive is required when using third-party libraries that need to insert or modify DOM elements.
+
+## Setting Up Static Resources
+
+1. Download Chart.js from [chartjs.org](https://www.chartjs.org/)
+2. Upload the library file as a static resource named `chartJs`
+3. Reference it in your component using `@salesforce/resourceUrl/chartJs`
+
+## Related Components
+
+- [D3.js Integration](/components/libs/d3) - Data visualization with D3
+- [FullCalendar Integration](/components/libs/fullcalendar) - Calendar functionality

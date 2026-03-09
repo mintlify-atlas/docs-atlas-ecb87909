@@ -1,0 +1,233 @@
+---
+title: Themes
+description: Create and customize Lightning Experience themes for your Salesforce applications
+---
+
+Lightning Experience Themes allow you to customize the look and feel of your Salesforce application, including colors, branding, and styling.
+
+## What are Lightning Experience Themes?
+
+A Lightning Experience Theme is metadata that defines:
+- Brand colors and styling
+- Logo and images
+- Default branding set
+- Loading screen customization
+
+Themes are defined using `.lightningExperienceTheme-meta.xml` files.
+
+## Theme File Structure
+
+Themes are stored in the `lightningExperienceThemes` directory:
+
+```
+force-app/main/default/
+  lightningExperienceThemes/
+    MyTheme.lightningExperienceTheme-meta.xml
+```
+
+## Basic Theme Example
+
+**Example:** Recipes Blue Theme
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningExperienceTheme xmlns="http://soap.sforce.com/2006/04/metadata">
+    <defaultBrandingSet>LEXTHEMINGRecipes_Blue</defaultBrandingSet>
+    <masterLabel>Recipes Blue</masterLabel>
+    <shouldOverrideLoadingImage>false</shouldOverrideLoadingImage>
+</LightningExperienceTheme>
+```
+
+**Example:** Recipes Lite Theme
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningExperienceTheme xmlns="http://soap.sforce.com/2006/04/metadata">
+    <defaultBrandingSet>LEXTHEMINGRecipes</defaultBrandingSet>
+    <masterLabel>Recipes Lite</masterLabel>
+    <shouldOverrideLoadingImage>false</shouldOverrideLoadingImage>
+</LightningExperienceTheme>
+```
+
+## Theme Configuration
+
+### defaultBrandingSet
+
+References a branding set that defines colors, logos, and other visual elements:
+
+```xml
+<defaultBrandingSet>LEXTHEMINGRecipes_Blue</defaultBrandingSet>
+```
+
+The branding set is configured separately in Setup and includes:
+- Brand color
+- Logo
+- Page background color
+- Page background image
+
+### masterLabel
+
+The display name for your theme:
+
+```xml
+<masterLabel>Recipes Blue</masterLabel>
+```
+
+This name appears in the Theme picker in Setup.
+
+### shouldOverrideLoadingImage
+
+Controls whether to use a custom loading spinner:
+
+```xml
+<shouldOverrideLoadingImage>false</shouldOverrideLoadingImage>
+```
+
+Set to `true` to use a custom loading image defined in your branding set.
+
+## Component-Level Theming
+
+While Lightning Experience Themes control the overall application appearance, you can make your components theme-aware using CSS custom properties.
+
+### Using SLDS Design Tokens
+
+SLDS design tokens automatically adapt to the active theme:
+
+```css
+:host {
+    background-color: var(--slds-g-color-neutral-base-100);
+    color: var(--slds-g-color-neutral-base-10);
+}
+```
+
+### Creating Theme Variables
+
+Define component-specific theme variables:
+
+```css
+:host {
+    --primary-color: #e3df00;
+    --secondary-color: #020024;
+    --base-text-color: #ffffff;
+    
+    /* Use theme variables throughout the component */
+    --slds-c-card-color-background: var(--secondary-color);
+    --slds-c-card-text-color: var(--primary-color);
+}
+```
+
+<Tip>
+By defining theme colors as CSS custom properties at the `:host` level, you can easily swap themes by changing just a few variables.
+</Tip>
+
+## Creating Theme Variants
+
+You can create multiple theme files for different use cases:
+
+```
+lightningExperienceThemes/
+  Corporate.lightningExperienceTheme-meta.xml    // Corporate branding
+  Event.lightningExperienceTheme-meta.xml        // Event-specific theme
+  Partner.lightningExperienceTheme-meta.xml      // Partner portal theme
+```
+
+Each theme can reference a different branding set with unique colors and logos.
+
+## Deploying Themes
+
+Deploy themes using Salesforce CLI:
+
+```bash
+sf project deploy start --source-dir force-app/main/default/lightningExperienceThemes
+```
+
+Or include them in your package.xml:
+
+```xml
+<types>
+    <members>Recipes_Blue</members>
+    <members>Recipes_Lite</members>
+    <name>LightningExperienceTheme</name>
+</types>
+```
+
+## Activating a Theme
+
+1. Navigate to Setup → Themes and Branding
+2. Click on the theme you want to activate
+3. Click "Activate"
+
+<Tip>
+Only one theme can be active at a time in an org. Users will see the active theme when they log in.
+</Tip>
+
+## Best Practices
+
+### Design System Alignment
+
+- Use SLDS design tokens in components to respect theme colors
+- Follow SLDS guidelines for consistent user experience
+- Test components with different themes activated
+
+### Theme Organization
+
+- Create meaningful theme names that reflect their purpose
+- Document theme colors and branding elements
+- Keep branding sets organized and well-named
+- Use consistent naming conventions
+
+### Component Theming
+
+- Make components theme-aware using CSS custom properties
+- Avoid hard-coded colors - use design tokens instead
+- Define component-specific theme variables at `:host` level
+- Provide fallback values for better compatibility
+
+### Testing
+
+- Test your application with all available themes
+- Verify contrast ratios for accessibility
+- Check component appearance in different contexts
+- Validate branding elements display correctly
+
+## Advanced Theming Patterns
+
+### Gradient Backgrounds
+
+```css
+:host {
+    --slds-c-card-color-background: linear-gradient(
+        115deg,
+        var(--secondary-color) 60%,
+        var(--primary-color-alt-shade) 100%
+    );
+}
+```
+
+### Custom Border Radius
+
+```css
+:host {
+    --slds-c-card-radius-border: 1.5rem 0; /* Asymmetric border radius */
+}
+```
+
+### State-Based Theming
+
+```css
+.toggle-red {
+    --slds-c-checkbox-toggle-color-border-checked: #990000;
+    --slds-c-checkbox-toggle-color-background-checked: #990000;
+    --slds-c-checkbox-toggle-color-background-checked-focus: #cc0000;
+}
+```
+
+<Tip>
+Use styling hooks to create state-based theme variations (hover, focus, active) that provide visual feedback while maintaining brand consistency.
+</Tip>
+
+## Resources
+
+- [Salesforce Lightning Design System](https://www.lightningdesignsystem.com/)
+- [SLDS Styling Hooks](https://www.lightningdesignsystem.com/platforms/lightning/styling-hooks/)
+- [Lightning Experience Themes Documentation](https://help.salesforce.com/s/articleView?id=sf.themes_and_branding.htm)

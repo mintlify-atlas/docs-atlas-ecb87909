@@ -1,0 +1,153 @@
+---
+title: Wire Apex to Function
+description: Call an Apex method using @wire decorator bound to a component function
+---
+
+This component demonstrates how to wire an Apex method to a function instead of a property. This approach gives you more control over data processing and state management.
+
+## Implementation
+
+<CodeGroup>
+
+```javascript apexWireMethodToFunction.js
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class ApexWireMethodToFunction extends LightningElement {
+    contacts;
+    error;
+
+    @wire(getContactList)
+    wiredContacts({ error, data }) {
+        if (data) {
+            this.contacts = data;
+            this.error = undefined;
+        } else if (error) {
+            this.error = error;
+            this.contacts = undefined;
+        }
+    }
+}
+```
+
+```html apexWireMethodToFunction.html
+<template>
+    <lightning-card
+        title="ApexWireMethodToFunction"
+        icon-name="custom:custom63"
+    >
+        <div class="slds-var-m-around_medium">
+            <template lwc:if={contacts}>
+                <template for:each={contacts} for:item="contact">
+                    <p key={contact.Id}>{contact.Name}</p>
+                </template>
+            </template>
+            <template lwc:elseif={error}>
+                <c-error-panel errors={error}></c-error-panel>
+            </template>
+        </div>
+
+        <c-view-source source="lwc/apexWireMethodToFunction" slot="footer">
+            Call an Apex method that retrieves a list of records using @wire. In
+            this recipe, the Apex method is @wired to a component function.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+```apex ContactController.cls
+public with sharing class ContactController {
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> getContactList() {
+        return [
+            SELECT
+                Id,
+                Name,
+                FirstName,
+                LastName,
+                Title,
+                Phone,
+                Email,
+                Picture__c
+            FROM Contact
+            WHERE Picture__c != NULL
+            WITH USER_MODE
+            LIMIT 10
+        ];
+    }
+}
+```
+
+</CodeGroup>
+
+## Key Features
+
+### Wire to Function
+
+The `@wire` decorator binds the Apex method to a function that receives `data` and `error`:
+
+```javascript
+@wire(getContactList)
+wiredContacts({ error, data }) {
+    if (data) {
+        this.contacts = data;
+        this.error = undefined;
+    } else if (error) {
+        this.error = error;
+        this.contacts = undefined;
+    }
+}
+```
+
+### Separate Properties
+
+Manage `contacts` and `error` as separate reactive properties:
+
+```javascript
+contacts;
+error;
+```
+
+### Data Processing
+
+The function allows you to:
+- Transform data before storing it
+- Perform calculations or filtering
+- Manage multiple properties
+- Add custom logic based on response
+
+### Error Handling
+
+Explicitly handle errors and clear previous states:
+
+```javascript
+if (error) {
+    this.error = error;
+    this.contacts = undefined; // Clear previous data
+}
+```
+
+## Advantages Over Property Binding
+
+1. **Data Transformation**: Process data before assigning to properties
+2. **State Control**: Explicitly manage when to clear or update state
+3. **Custom Logic**: Add business logic in the response handler
+4. **Multiple Properties**: Update multiple properties from single response
+
+## When to Use
+
+Use this pattern when:
+- You need to transform or process data before display
+- You want explicit control over state management
+- You need to update multiple properties
+- You want to add custom error handling logic
+
+## Comparison with Property Binding
+
+| Feature | Property Binding | Function Binding |
+|---------|-----------------|------------------|
+| Code simplicity | Simple | Moderate |
+| Data processing | None | Full control |
+| State management | Automatic | Manual |
+| Error handling | Built-in | Custom |
+| Use case | Simple display | Complex logic |

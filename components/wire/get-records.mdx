@@ -1,0 +1,149 @@
+---
+title: getRecords
+description: Wire adapter to retrieve multiple records in a single request
+---
+
+The `getRecords` wire adapter retrieves multiple records across different object types in a single request.
+
+## Import
+
+```javascript
+import { getRecords } from 'lightning/uiRecordApi';
+```
+
+## Parameters
+
+<ParamField path="records" type="array" required>
+  Array of record request objects. Each object specifies record IDs and fields to retrieve.
+</ParamField>
+
+### Record Request Object
+
+<ParamField path="recordIds" type="string[]" required>
+  Array of record IDs to retrieve.
+</ParamField>
+
+<ParamField path="fields" type="string[]" required>
+  Array of fields to retrieve for these records.
+</ParamField>
+
+<ParamField path="optionalFields" type="string[]">
+  Array of fields to retrieve if available.
+</ParamField>
+
+## Basic Usage
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { getRecords } from 'lightning/uiRecordApi';
+import NAME_FIELD from '@salesforce/schema/Contact.Name';
+import EMAIL_FIELD from '@salesforce/schema/Contact.Email';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class WireGetRecords extends LightningElement {
+    records;
+
+    @wire(getContactList)
+    wiredContacts({ error, data }) {
+        if (data) {
+            this.records = [
+                {
+                    recordIds: [data[0].Id, data[1].Id],
+                    fields: [NAME_FIELD],
+                    optionalFields: [EMAIL_FIELD]
+                }
+            ];
+        }
+    }
+
+    @wire(getRecords, {
+        records: '$records'
+    })
+    recordResults;
+}
+```
+
+## Multiple Object Types
+
+Retrieve records from different object types in a single request:
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { getRecords } from 'lightning/uiRecordApi';
+import NAME_FIELD from '@salesforce/schema/Contact.Name';
+import EMAIL_FIELD from '@salesforce/schema/Contact.Email';
+import ACCOUNT_NAME_FIELD from '@salesforce/schema/Account.Name';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+import getAccountList from '@salesforce/apex/AccountController.getAccountList';
+
+export default class WireGetRecordsDifferentTypes extends LightningElement {
+    records = [];
+
+    @wire(getAccountList)
+    wiredAccounts({ error, data }) {
+        if (data) {
+            const accountRecord = [
+                {
+                    recordIds: [data[0].Id],
+                    fields: [ACCOUNT_NAME_FIELD]
+                }
+            ];
+            this.records = this.records
+                ? this.records.concat(accountRecord)
+                : accountRecord;
+        }
+    }
+
+    @wire(getContactList)
+    wiredContacts({ error, data }) {
+        if (data) {
+            const contactRecord = [
+                {
+                    recordIds: [data[0].Id],
+                    fields: [NAME_FIELD],
+                    optionalFields: [EMAIL_FIELD]
+                }
+            ];
+            this.records = this.records
+                ? this.records.concat(contactRecord)
+                : contactRecord;
+        }
+    }
+
+    @wire(getRecords, {
+        records: '$records'
+    })
+    recordResults;
+}
+```
+
+## Reactive Parameters
+
+Use the `$` prefix to make the records array reactive:
+
+```javascript
+@wire(getRecords, {
+    records: '$records'  // Re-executes when this.records changes
+})
+recordResults;
+```
+
+## Response Format
+
+The wire adapter returns an object with `data` and `error` properties. The `data` contains:
+
+```javascript
+{
+    results: [
+        {
+            result: { /* record data */ },
+            statusCode: 200
+        }
+    ]
+}
+```
+
+## Source Examples
+
+- `wireGetRecords` - Single object type retrieval
+- `wireGetRecordsDifferentTypes` - Multiple object types in one request

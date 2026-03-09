@@ -1,0 +1,210 @@
+---
+title: GraphQL Multiple Objects
+description: Query unrelated records with a single GraphQL query and @wire
+---
+
+## Overview
+
+The `graphqlMultipleObjects` component demonstrates how to query multiple unrelated object types in a single GraphQL query. This reduces the number of server requests and improves performance.
+
+## Source
+
+`force-app/main/default/lwc/graphqlMultipleObjects`
+
+## Key Features
+
+- Multiple object queries in single request
+- Parallel data fetching
+- Separate getters for each object type
+- Unified error handling
+
+## Query Multiple Objects
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { gql, graphql } from 'lightning/graphql';
+
+export default class GraphqlMultipleObjects extends LightningElement {
+    @wire(graphql, {
+        query: gql`
+            query getAccountAndContacts {
+                uiapi {
+                    query {
+                        Account(first: 5) {
+                            edges {
+                                node {
+                                    Id
+                                    Name {
+                                        value
+                                    }
+                                }
+                            }
+                        }
+                        Contact(first: 5) {
+                            edges {
+                                node {
+                                    Id
+                                    Name {
+                                        value
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        `
+    })
+    graphql;
+}
+```
+
+## Query Structure
+
+Include multiple object types under the same `query` block:
+
+```graphql
+query getAccountAndContacts {
+    uiapi {
+        query {
+            Account(first: 5) {
+                # Account fields
+            }
+            Contact(first: 5) {
+                # Contact fields
+            }
+        }
+    }
+}
+```
+
+Each object type can have its own parameters, filters, and field selections.
+
+## Separate Getters for Each Object
+
+Create dedicated getters to transform data for each object type:
+
+```javascript
+get accounts() {
+    return this.graphql.data?.uiapi.query.Account.edges.map((edge) => ({
+        Id: edge.node.Id,
+        Name: edge.node.Name.value
+    }));
+}
+
+get contacts() {
+    return this.graphql.data?.uiapi.query.Contact.edges.map((edge) => ({
+        Id: edge.node.Id,
+        Name: edge.node.Name.value
+    }));
+}
+```
+
+## Template Rendering
+
+Render each object type separately:
+
+```html
+<template lwc:if={accounts}>
+    <div class="slds-var-m-around_medium">
+        <b>Accounts:</b>
+        <template for:each={accounts} for:item="account">
+            <div key={account.Id}>
+                <p>{account.Name}</p>
+            </div>
+        </template>
+    </div>
+</template>
+
+<template lwc:if={contacts}>
+    <div class="slds-var-m-around_medium">
+        <b>Contacts:</b>
+        <template for:each={contacts} for:item="contact">
+            <div key={contact.Id}>
+                <p>{contact.Name}</p>
+            </div>
+        </template>
+    </div>
+</template>
+```
+
+## Unified Error Handling
+
+Handle errors once for all queries:
+
+```html
+<template lwc:if={graphql.errors}>
+    <c-error-panel errors={graphql.errors}></c-error-panel>
+</template>
+```
+
+If any query in the batch fails, the errors will be available in `graphql.errors`.
+
+## Benefits of Multiple Object Queries
+
+### Performance
+
+Fetching multiple objects in a single query reduces:
+- Network round trips
+- Server processing overhead
+- Overall load time
+
+### Code Organization
+
+A single wire adapter can provide data for:
+- Dashboard components displaying multiple object types
+- Related lists from different objects
+- Summary views with cross-object data
+
+### Consistency
+
+All data is fetched at the same point in time, ensuring:
+- Consistent data snapshot
+- Synchronized refresh
+- Unified loading state
+
+## Different Parameters Per Object
+
+Each object query can have unique parameters:
+
+```graphql
+query mixedQuery {
+    uiapi {
+        query {
+            Account(
+                first: 10
+                orderBy: { Name: { order: ASC } }
+            ) {
+                edges { node { Id Name { value } } }
+            }
+            Contact(
+                where: { Email: { ne: null } }
+                first: 5
+                orderBy: { LastName: { order: DESC } }
+            ) {
+                edges { node { Id Name { value } } }
+            }
+        }
+    }
+}
+```
+
+## When to Use Multiple Object Queries
+
+- Building dashboards with data from multiple objects
+- Displaying related but unconnected object types
+- Reducing network overhead for initial page loads
+- Creating summary or overview components
+
+## Limitations
+
+While powerful, consider:
+- Total query complexity limits
+- Individual object query limits
+- Overall response payload size
+
+## See Also
+
+- [GraphQL Contacts](/components/graphql/basic-query)
+- [GraphQL Variables](/components/graphql/variables)
+- [GraphQL Pagination](/components/graphql/pagination)

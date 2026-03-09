@@ -1,0 +1,134 @@
+---
+title: Navigate to Related List
+description: Navigate to related lists on record pages using NavigationMixin
+---
+
+Navigate to related lists on a parent record page, such as viewing all Contacts related to an Account.
+
+## Source
+
+`force-app/main/default/lwc/navToRelatedList/navToRelatedList.js`
+
+## Usage
+
+```javascript
+import { LightningElement, wire } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import getSingleAccount from '@salesforce/apex/AccountController.getSingleAccount';
+
+export default class NavToRelatedList extends NavigationMixin(
+    LightningElement
+) {
+    @wire(getSingleAccount) account;
+
+    navigateToRelatedList() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__recordRelationshipPage',
+            attributes: {
+                recordId: this.account.data.Id,
+                objectApiName: 'Account',
+                relationshipApiName: 'Contacts',
+                actionName: 'view'
+            }
+        });
+    }
+}
+```
+
+## NavigationMixin
+
+Extend your component with `NavigationMixin` to access navigation capabilities:
+
+```javascript
+export default class NavToRelatedList extends NavigationMixin(
+    LightningElement
+) {
+    // component code
+}
+```
+
+## PageReference
+
+<ParamField path="type" type="string" required>
+  Set to `standard__recordRelationshipPage` for related list pages
+</ParamField>
+
+<ParamField path="attributes.recordId" type="string" required>
+  The ID of the parent record
+</ParamField>
+
+<ParamField path="attributes.objectApiName" type="string" required>
+  The API name of the parent object (e.g., 'Account', 'Contact')
+</ParamField>
+
+<ParamField path="attributes.relationshipApiName" type="string" required>
+  The API name of the related list. For standard relationships, use the plural child object name (e.g., 'Contacts', 'Opportunities'). For custom relationships, use the relationship name from the object definition
+</ParamField>
+
+<ParamField path="attributes.actionName" type="string" required>
+  Set to `view` to display the related list
+</ParamField>
+
+## Finding Relationship API Names
+
+### Standard Relationships
+
+Common standard relationship names:
+
+- `Contacts` - Contacts related to an Account
+- `Opportunities` - Opportunities related to an Account
+- `Cases` - Cases related to an Account or Contact
+- `ActivityHistories` - Completed activities
+- `OpenActivities` - Upcoming activities
+
+### Custom Relationships
+
+For custom relationships, find the relationship name in Setup:
+
+1. Navigate to Object Manager
+2. Select the parent object
+3. Click on Fields & Relationships
+4. Find the relationship field
+5. Use the "Child Relationship Name" value
+
+## Examples
+
+### Account Contacts
+
+```javascript
+this[NavigationMixin.Navigate]({
+    type: 'standard__recordRelationshipPage',
+    attributes: {
+        recordId: accountId,
+        objectApiName: 'Account',
+        relationshipApiName: 'Contacts',
+        actionName: 'view'
+    }
+});
+```
+
+### Account Opportunities
+
+```javascript
+this[NavigationMixin.Navigate]({
+    type: 'standard__recordRelationshipPage',
+    attributes: {
+        recordId: accountId,
+        objectApiName: 'Account',
+        relationshipApiName: 'Opportunities',
+        actionName: 'view'
+    }
+});
+```
+
+## Key Features
+
+- Navigate to related lists on record pages
+- Supports standard and custom relationships
+- Type-safe navigation with PageReference
+- Works with all standard and custom objects
+
+## Related
+
+- [Navigate to Record](/components/navigation/to-record)
+- [Navigate to List View](/components/navigation/to-list-view)

@@ -1,0 +1,151 @@
+---
+title: CSS Basics
+description: Learn how to style Lightning Web Components using CSS and Shadow DOM scoping
+---
+
+Lightning Web Components use standard CSS for styling, with built-in Shadow DOM encapsulation that scopes styles to each component.
+
+## CSS File Structure
+
+Each component can have its own CSS file that shares the component's name:
+
+```
+lwc/
+  myComponent/
+    myComponent.js
+    myComponent.html
+    myComponent.css    // Component-specific styles
+```
+
+## Shadow DOM Scoping
+
+Styles defined in a component's CSS file are automatically scoped to that component using Shadow DOM. This means:
+
+- Styles don't leak out to parent components
+- External styles don't affect the component (except inherited properties)
+- Each component has its own isolated styling context
+
+**Example:** `lwc/contactTile/contactTile.css:1`
+
+```css
+img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+}
+```
+
+This `img` selector only affects images inside the `contactTile` component, not images elsewhere in the application.
+
+<Tip>
+Shadow DOM scoping eliminates CSS conflicts and makes components truly modular and reusable.
+</Tip>
+
+## The :host Selector
+
+Use the `:host` pseudo-class to style the component's host element itself:
+
+```css
+:host {
+    display: block;
+    padding: 1rem;
+}
+```
+
+This is commonly used to:
+- Set the display mode of the component
+- Define CSS custom properties for child components
+- Apply default spacing or layout
+
+## SLDS Design Tokens
+
+Lightning Web Components have access to Salesforce Lightning Design System (SLDS) design tokens through CSS custom properties:
+
+**Example:** `lwc/eventSimple/eventSimple.css:2`
+
+```css
+fieldset {
+    border: solid var(--slds-g-sizing-border-1)
+        var(--slds-g-color-neutral-base-80);
+    border-radius: var(--slds-g-radius-border-2);
+}
+```
+
+Common SLDS token categories:
+- `--slds-g-color-*` - Color tokens
+- `--slds-g-sizing-*` - Sizing and spacing tokens
+- `--slds-g-font-*` - Typography tokens
+- `--slds-g-radius-*` - Border radius tokens
+
+<Tip>
+Use SLDS design tokens instead of hard-coded values to ensure your components match the Salesforce design system and respond to theme changes.
+</Tip>
+
+## Multiple Stylesheets
+
+You can import additional CSS files using the static `stylesheets` property:
+
+**Example:** `lwc/stylesheets/stylesheets.js:1`
+
+```javascript
+import { LightningElement } from 'lwc';
+import textStyles from './text-styles.css';
+
+export default class Stylesheets extends LightningElement {
+    static stylesheets = [textStyles];
+}
+```
+
+**Main stylesheet:** `lwc/stylesheets/stylesheets.css:1`
+
+```css
+.card-body {
+    background-color: yellow;
+}
+```
+
+**Additional stylesheet:** `lwc/stylesheets/text-styles.css:1`
+
+```css
+.fancy-text {
+    color: #d54d7b;
+    font-family: 'Great Vibes', cursive;
+    font-weight: var(--slds-g-font-weight-4, 400);
+    text-align: center;
+    text-shadow: 0 1px 1px #fff;
+}
+```
+
+Both stylesheets are scoped to the component and applied together.
+
+<Tip>
+Use multiple stylesheets to organize complex styling or share common styles between related components.
+</Tip>
+
+## Styling Base Components
+
+You can style Lightning base components using class names:
+
+```html
+<template>
+    <lightning-input 
+        class="custom-input"
+        label="Name"
+    ></lightning-input>
+</template>
+```
+
+```css
+.custom-input {
+    margin-bottom: 1rem;
+}
+```
+
+## Best Practices
+
+- Use SLDS utility classes in templates: `class="slds-var-m-around_medium"`
+- Leverage SLDS design tokens for consistent styling
+- Keep component styles focused and minimal
+- Use `:host` for component-level layout
+- Avoid `!important` - Shadow DOM scoping makes it unnecessary
+- Use semantic class names that describe purpose, not appearance

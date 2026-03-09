@@ -1,0 +1,118 @@
+---
+title: Wire Apex to Property
+description: Call an Apex method using @wire decorator bound to a component property
+---
+
+This component demonstrates how to wire an Apex method to a component property. The data is automatically retrieved when the component loads and updates reactively.
+
+## Implementation
+
+<CodeGroup>
+
+```javascript apexWireMethodToProperty.js
+import { LightningElement, wire } from 'lwc';
+import getContactList from '@salesforce/apex/ContactController.getContactList';
+
+export default class ApexWireMethodToProperty extends LightningElement {
+    @wire(getContactList) contacts;
+}
+```
+
+```html apexWireMethodToProperty.html
+<template>
+    <lightning-card
+        title="ApexWireMethodToProperty"
+        icon-name="custom:custom63"
+    >
+        <div class="slds-var-m-around_medium">
+            <template lwc:if={contacts.data}>
+                <template for:each={contacts.data} for:item="contact">
+                    <p key={contact.Id}>{contact.Name}</p>
+                </template>
+            </template>
+            <template lwc:elseif={contacts.error}>
+                <c-error-panel errors={contacts.error}></c-error-panel>
+            </template>
+        </div>
+
+        <c-view-source source="lwc/apexWireMethodToProperty" slot="footer">
+            Call an Apex method that retrieves a list of records using @wire. In
+            this recipe, the Apex method is @wired to a component property.
+        </c-view-source>
+    </lightning-card>
+</template>
+```
+
+```apex ContactController.cls
+public with sharing class ContactController {
+    @AuraEnabled(cacheable=true)
+    public static List<Contact> getContactList() {
+        return [
+            SELECT
+                Id,
+                Name,
+                FirstName,
+                LastName,
+                Title,
+                Phone,
+                Email,
+                Picture__c
+            FROM Contact
+            WHERE Picture__c != NULL
+            WITH USER_MODE
+            LIMIT 10
+        ];
+    }
+}
+```
+
+</CodeGroup>
+
+## Key Features
+
+### Wire to Property
+
+The `@wire` decorator binds the Apex method directly to the `contacts` property:
+
+```javascript
+@wire(getContactList) contacts;
+```
+
+The property automatically receives an object with `data` and `error` properties.
+
+### Accessing Data
+
+Access the returned data through `contacts.data`:
+
+```html
+<template lwc:if={contacts.data}>
+    <template for:each={contacts.data} for:item="contact">
+        <p key={contact.Id}>{contact.Name}</p>
+    </template>
+</template>
+```
+
+### Error Handling
+
+Handle errors through `contacts.error`:
+
+```html
+<template lwc:elseif={contacts.error}>
+    <c-error-panel errors={contacts.error}></c-error-panel>
+</template>
+```
+
+## Apex Method Requirements
+
+- Must be annotated with `@AuraEnabled(cacheable=true)`
+- Must be `static`
+- Must use `with sharing` for security
+- Should include `WITH USER_MODE` in SOQL queries for proper security enforcement
+
+## When to Use
+
+Use this pattern when:
+- You need automatic data loading when component initializes
+- The Apex method has no parameters
+- You want automatic reactive updates
+- You need simple access to data and error states

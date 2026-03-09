@@ -1,0 +1,163 @@
+---
+title: 'Conditional Rendering'
+description: 'Learn how to show or hide content dynamically using lwc:if and lwc:else'
+icon: 'code-branch'
+---
+
+## Overview
+
+Conditional rendering allows you to show or hide portions of your template based on component state. This is essential for creating dynamic user interfaces that respond to user actions and data conditions.
+
+## How It Works
+
+Lightning Web Components provide `lwc:if` and `lwc:else` directives for conditional rendering. These directives are evaluated at render time and determine which template blocks to display.
+
+## Implementation
+
+<CodeGroup>
+
+```javascript helloConditionalRendering.js
+import { LightningElement } from 'lwc';
+
+export default class HelloConditionalRendering extends LightningElement {
+    areDetailsVisible = false;
+
+    handleChange(event) {
+        this.areDetailsVisible = event.target.checked;
+    }
+}
+```
+
+```html helloConditionalRendering.html
+<template>
+    <lightning-card
+        title="HelloConditionalRendering"
+        icon-name="custom:custom14"
+    >
+        <div class="slds-var-m-around_medium">
+            <lightning-input
+                type="checkbox"
+                label="Show details"
+                onchange={handleChange}
+            ></lightning-input>
+
+            <div class="slds-var-m-vertical_medium">
+                <template lwc:if={areDetailsVisible}>
+                    These are the details!
+                </template>
+                <template lwc:else>
+                    Not showing details.
+                </template>
+            </div>
+        </div>
+    </lightning-card>
+</template>
+```
+
+</CodeGroup>
+
+## Key Concepts
+
+### The lwc:if Directive
+
+The `lwc:if` directive conditionally renders a template block:
+
+```html
+<template lwc:if={areDetailsVisible}>
+    These are the details!
+</template>
+```
+
+- The expression in curly braces `{areDetailsVisible}` is evaluated as a boolean
+- If truthy, the template block is rendered
+- If falsy, the block is removed from the DOM
+
+### The lwc:else Directive
+
+The `lwc:else` directive provides an alternative when the condition is false:
+
+```html
+<template lwc:else>
+    Not showing details.
+</template>
+```
+
+<Note>
+The `lwc:else` block must immediately follow an `lwc:if` block. You cannot have other elements between them.
+</Note>
+
+### Boolean Properties
+
+In this example, `areDetailsVisible` is a boolean property:
+
+```javascript
+areDetailsVisible = false;
+```
+
+Checkbox inputs work perfectly with boolean properties because `event.target.checked` returns `true` or `false`:
+
+```javascript
+handleChange(event) {
+    this.areDetailsVisible = event.target.checked;
+}
+```
+
+## What You'll See
+
+1. **Initial state**: Checkbox is unchecked, displays "Not showing details."
+2. **Checked**: Check the box to see "These are the details!"
+3. **Unchecked**: Uncheck to return to "Not showing details."
+
+## Additional Conditional Directives
+
+### lwc:elseif
+
+For multiple conditions, use `lwc:elseif`:
+
+```html
+<template lwc:if={status === 'success'}>
+    Success!
+</template>
+<template lwc:elseif={status === 'error'}>
+    Error occurred.
+</template>
+<template lwc:else>
+    Processing...
+</template>
+```
+
+<Tip>
+Use `lwc:elseif` for mutually exclusive conditions to keep your template clean and efficient.
+</Tip>
+
+## Best Practices
+
+<Tip>
+**Remove from DOM**: `lwc:if` completely removes elements from the DOM when false, improving performance compared to CSS `display: none`.
+</Tip>
+
+<Note>
+**Boolean coercion**: The conditional expression is coerced to a boolean. Empty strings, `null`, `undefined`, `0`, and `false` are all falsy.
+</Note>
+
+<Tip>
+**Complex conditions**: For complex boolean logic, use a getter instead of inline expressions:
+
+```javascript
+get shouldShowDetails() {
+    return this.isAdmin && this.hasPermission && this.dataLoaded;
+}
+```
+
+```html
+<template lwc:if={shouldShowDetails}>
+    <!-- content -->
+</template>
+```
+</Tip>
+
+## Next Steps
+
+- [Expressions](/basics/expressions) - Compute values using getters
+- [Iteration](/basics/iteration) - Render lists with for:each and iterator
+- [Data Binding](/basics/data-binding) - Handle user input
